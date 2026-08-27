@@ -1,0 +1,236 @@
+{
+  "name": "Agente IA",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agente",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5987ee32-9019-4236-92e5-3c186b5cc427",
+      "name": "Webhook",
+      "webhookId": "f5aec1f6-2577-43a8-8b2c-b24db6ff136a"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Preparar Prompt Final para o Gemini\nconst mensagem = $json.mensagem || $json.body?.mensagem || '';\n\nconst systemPrompt = `Você é o assistente comercial oficial do CommerceAI.\n\n═══════════════════════════════════════════════════\n🎯 SUAS FUNÇÕES PRINCIPAIS\n═══════════════════════════════════════════════════\n\n📋 GESTÃO DE CLIENTES:\n- Cadastrar novos clientes\n- Consultar dados de clientes\n- Alterar informações de clientes\n\n📦 GESTÃO DE PRODUTOS:\n- Cadastrar novos produtos\n- Consultar produtos\n- Alterar produtos\n- Consultar estoque de produtos\n\n💰 GESTÃO DE VENDAS:\n- Registrar vendas\n- Consultar vendas realizadas\n- Atualizar estoque automaticamente\n\n═══════════════════════════════════════════════════\n📝 REGRAS DE OPERAÇÃO\n═══════════════════════════════════════════════════\n\n1. SEMPRE responda APENAS com JSON válido\n2. SEMPRE identifique a ação correta baseada na solicitação\n3. NUNCA adicione texto antes ou depois do JSON\n4. NUNCA invente dados que não foram fornecidos\n5. Se faltar dados obrigatórios, use null\n6. SEMPRE valide se os dados fazem sentido\n7. SEMPRE mantenha o formato padrão de resposta\n\n═══════════════════════════════════════════════════\n📋 AÇÕES DISPONÍVEIS\n═══════════════════════════════════════════════════\n\nCLIENTES:\n- \"cadastrar_cliente\" - Requer: Nome, Email, Telefone\n- \"consultar_cliente\" - Requer: IdCliente\n- \"alterar_cliente\" - Requer: IdCliente + campos a alterar\n\nPRODUTOS:\n- \"cadastrar_produto\" - Requer: Nome, Preco, Estoque\n- \"consultar_produto\" - Requer: IdProduto\n- \"alterar_produto\" - Requer: IdProduto + campos a alterar\n- \"consultar_estoque\" - Requer: IdProduto ou Nome\n\nVENDAS:\n- \"registrar_venda\" - Requer: IdCliente + Itens\n- \"consultar_venda\" - Requer: IdVenda ou IdCliente\n\n═══════════════════════════════════════════════════\n📤 FORMATO DE SAÍDA PADRÃO\n═══════════════════════════════════════════════════\n\n{\n  \"acao\": \"string\",\n  \"dados\": {\n    // Campos específicos da ação\n  }\n}\n\n═══════════════════════════════════════════════════\n📚 EXEMPLOS PRÁTICOS\n═══════════════════════════════════════════════════\n\nCLIENTES:\n\n1. Usuário: \"Cadastre João Silva, joao@email.com, 11988887777\"\n   Resposta: {\"acao\":\"cadastrar_cliente\",\"dados\":{\"Nome\":\"João Silva\",\"Email\":\"joao@email.com\",\"Telefone\":\"11988887777\"}}\n\n2. Usuário: \"Mostre o cliente 20\"\n   Resposta: {\"acao\":\"consultar_cliente\",\"dados\":{\"IdCliente\":20}}\n\n3. Usuário: \"Altere o telefone do cliente 20 para 11999999999\"\n   Resposta: {\"acao\":\"alterar_cliente\",\"dados\":{\"IdCliente\":20,\"Telefone\":\"11999999999\"}}\n\nPRODUTOS:\n\n4. Usuário: \"Cadastre o produto Notebook Dell, preço 4500, estoque 10\"\n   Resposta: {\"acao\":\"cadastrar_produto\",\"dados\":{\"Nome\":\"Notebook Dell\",\"Preco\":4500,\"Estoque\":10}}\n\n5. Usuário: \"Quanto tem no estoque do produto 5?\"\n   Resposta: {\"acao\":\"consultar_estoque\",\"dados\":{\"IdProduto\":5}}\n\nVENDAS:\n\n6. Usuário: \"Registre uma venda para o cliente 20 com 2 unidades do produto 5\"\n   Resposta: {\"acao\":\"registrar_venda\",\"dados\":{\"IdCliente\":20,\"Itens\":[{\"IdProduto\":5,\"Quantidade\":2}]}}\n\n7. Usuário: \"Mostre as vendas do cliente 20\"\n   Resposta: {\"acao\":\"consultar_venda\",\"dados\":{\"IdCliente\":20}}\n\n═══════════════════════════════════════════════════\n⚠️ OBSERVAÇÕES IMPORTANTES\n═══════════════════════════════════════════════════\n\n- Se o usuário pedir algo fora das funções, responda:\n  {\"acao\":\"invalida\",\"dados\":{}}\n\n- Se faltar informação crítica, use null no campo\n- Se o usuário não especificar dados, retorne o que estiver disponível\n- SEMPRE priorize a ação mais específica solicitada`;\n\n// Junta tudo em um único prompt\nconst promptFinal = `${systemPrompt}\\n\\n═══════════════════════════════════════════════════\\n📨 SOLICITAÇÃO DO USUÁRIO\\n═══════════════════════════════════════════════════\\n\\n${mensagem}\\n\\n═══════════════════════════════════════════════════\\n📤 SUA RESPOSTA (APENAS JSON)\\n═══════════════════════════════════════════════════`;\n\nreturn [{\n  json: {\n    promptFinal: promptFinal\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "5211e219-c5bb-4288-8d2f-ce6f6e343a49",
+      "name": "Preparar Prompt"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.promptFinal }}"
+            }
+          ]
+        },
+        "simplify": "=",
+        "jsonOutput": true,
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        464,
+        0
+      ],
+      "id": "df568f5c-3260-44ff-8090-23e2c39ea6c1",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ziFvoOJAwvi3AwU5",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrair JSON da resposta do Gemini\nconst respostaGemini = $json;\n\n// Função para extrair JSON de qualquer estrutura\nfunction extrairJSON(objeto) {\n  // Tenta diferentes caminhos para encontrar o texto\n  let texto = null;\n  \n  // Caminho 1: candidates[0].content.parts[0].text\n  if (objeto.candidates && objeto.candidates[0]?.content?.parts?.[0]?.text) {\n    texto = objeto.candidates[0].content.parts[0].text;\n  }\n  // Caminho 2: content\n  else if (objeto.content) {\n    texto = JSON.stringify(objeto.content);\n  }\n  // Caminho 3: text direto\n  else if (objeto.text) {\n    texto = objeto.text;\n  }\n  // Caminho 4: resposta direta\n  else if (typeof objeto === 'string') {\n    texto = objeto;\n  }\n  \n  if (!texto) {\n    throw new Error('Não foi possível encontrar texto na resposta do Gemini');\n  }\n  \n  // Limpa o texto\n  texto = texto.trim();\n  \n  // Remove markdown code blocks se existirem\n  texto = texto.replace(/```json/g, '').replace(/```/g, '');\n  \n  // Encontra o primeiro { e o último }\n  const inicio = texto.indexOf('{');\n  const fim = texto.lastIndexOf('}');\n  \n  if (inicio === -1 || fim === -1 || fim <= inicio) {\n    throw new Error('JSON não encontrado na resposta');\n  }\n  \n  const jsonString = texto.substring(inicio, fim + 1);\n  \n  try {\n    const jsonParseado = JSON.parse(jsonString);\n    return jsonParseado;\n  } catch (e) {\n    console.error('Erro ao parsear JSON:', e);\n    console.error('String tentada:', jsonString);\n    throw new Error('JSON inválido na resposta do Gemini');\n  }\n}\n\n// Extrai o JSON\nconst resultado = extrairJSON(respostaGemini);\n\nreturn [{\n  json: resultado\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        0
+      ],
+      "id": "23ba205c-efb3-433c-b7af-2fa9e44b6511",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://0.0.0.0:5678/webhook/commerceai",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "acao",
+              "value": "={{ $json.acao }}"
+            },
+            {
+              "name": "dados",
+              "value": "={{ $json.dados }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "91a44915-8d24-4cac-8e68-158578cd6544",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatar resposta para o usuário\nconst respostaOperacao = $json;\n\nlet mensagemFinal = '';\n\nif (respostaOperacao.sucesso) {\n  mensagemFinal = `✅ ${respostaOperacao.mensagem}\\n\\n`;\n  \n  if (respostaOperacao.cliente) {\n    const cliente = respostaOperacao.cliente;\n    mensagemFinal += `📋 DADOS DO CLIENTE:\\n`;\n    mensagemFinal += `ID: ${cliente.id}\\n`;\n    mensagemFinal += `Nome: ${cliente.nome}\\n`;\n    if (cliente.email) mensagemFinal += `Email: ${cliente.email}\\n`;\n    if (cliente.telefone) mensagemFinal += `Telefone: ${cliente.telefone}\\n`;\n    if (cliente.dataCadastro) mensagemFinal += `Data Cadastro: ${cliente.dataCadastro}\\n`;\n    if (cliente.status) mensagemFinal += `Status: ${cliente.status}\\n`;\n  }\n} else {\n  mensagemFinal = `❌ ${respostaOperacao.mensagem}`;\n}\n\nreturn [{\n  json: {\n    sucesso: respostaOperacao.sucesso,\n    mensagem: respostaOperacao.mensagem,\n    resposta_completa: mensagemFinal,\n    cliente: respostaOperacao.cliente || null\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        0
+      ],
+      "id": "89b61d4a-fc31-445c-9572-f12c8d3113b7",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1488,
+        0
+      ],
+      "id": "4be63172-afe4-4375-9a00-d900fb4cef92",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "mensagem": "Altere o nome do cliente 36 para Excluir"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Preparar Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Prompt": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a0516e10-ae79-45fc-9486-6a2b55c6bbb7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "35b5070a2c6bd2f0645dce015ac46a82892b324b226e8814bc2c5f502e191450"
+  },
+  "nodeGroups": [],
+  "id": "cyjjOvaEuhI1Lj4x",
+  "tags": []
+}

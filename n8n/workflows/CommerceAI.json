@@ -1,0 +1,809 @@
+{
+  "name": "CommerceAI",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "commerceai",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c78a0be5-6cdc-4425-a5e9-4036a7aa825c",
+      "name": "Webhook",
+      "webhookId": "7bc40438-0829-41ae-8744-449a4ad3e9dc"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? $json;\n\nconst acao = String(body.acao ?? '').trim().toLowerCase();\nconst dados = body.dados ?? {};\n\nconst erros = [];\n\nconst acoesPermitidas = [\n  'cadastrar_cliente',\n  'consultar_cliente',\n  'alterar_cliente'\n];\n\n// Validação da ação\nif (!acao) {\n  erros.push('O campo \"acao\" é obrigatório.');\n}\n\nif (acao && !acoesPermitidas.includes(acao)) {\n  erros.push(`Ação \"${acao}\" não é suportada.`);\n}\n\n// Validação dos dados\nif (!body.dados || typeof body.dados !== 'object') {\n  erros.push('O campo \"dados\" é obrigatório e deve ser um objeto.');\n}\n\n// Validação para cadastro\nif (acao === 'cadastrar_cliente') {\n  const nomeCadastro = dados.Nome ?? dados.nome ?? null;\n  if (!nomeCadastro || String(nomeCadastro).trim() === '') {\n    erros.push('O campo \"nome\" é obrigatório para cadastrar um cliente.');\n  }\n}\n\n// Validação para consulta e alteração\nif (acao === 'consultar_cliente' || acao === 'alterar_cliente') {\n  if (!dados.IdCliente) {\n    erros.push('O campo \"IdCliente\" é obrigatório.');\n  }\n\nconst emailCadastro = dados['E-mail'] ?? dados.Email ?? dados.email ?? null;\n  if (!emailCadastro || String(emailCadastro).trim() === '') {\n    erros.push('O campo \"email\" é obrigatório para cadastrar um cliente.');\n  }\n\n}\n\n// Validação do e-mail\nconst emailDados = dados['E-mail'] ?? dados.Email ?? dados.email ?? null;\nif (emailDados) {\n  const email = String(emailDados).trim();\n\n  const emailValido = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email);\n\n  if (!emailValido) {\n    erros.push('O formato do e-mail é inválido.');\n  }\n}\n\n// Retorno - CORRIGIDO para aceitar Maiúsculas e minúsculas\nreturn [\n  {\n    json: {\n      sucesso: erros.length === 0,\n      acao,\n      dados: {\n        IdCliente: dados.IdCliente ?? dados.id ?? null,\n        Nome: dados.Nome ?? dados.nome ?? null,\n        Email: dados['E-mail'] ?? dados.Email ?? dados.email ?? null,\n        Telefone: dados.Telefone ?? dados.telefone ?? null,\n        Status: dados.Status ?? dados.status ?? null\n      },\n      erros\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "d6b2eabf-6880-498d-99be-8872f8db30f8",
+      "name": "Validar e Preparar Requisição"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ String($json.Acao ?? $json.acao ?? '').trim().toLowerCase() }}",
+                    "rightValue": "cadastrar_cliente",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "2011106e-6fc8-454e-aedb-390f3b985f46"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "saída 1"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a8365b9a-841c-4a73-9508-04f5a3128d54",
+                    "leftValue": "={{ String($json.Acao ?? $json.acao ?? '').trim().toLowerCase() }}",
+                    "rightValue": "consultar_cliente",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Saída 2"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "70238e25-e4a1-494e-ad85-8a63e42ec5ae",
+                    "leftValue": "={{ String($json.Acao ?? $json.acao ?? '').trim().toLowerCase() }}",
+                    "rightValue": "alterar_cliente",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Saída 3"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        0
+      ],
+      "id": "2db2710a-e444-47de-b163-9cc38c8bfc04",
+      "name": "Direcionar Ação"
+    },
+    {
+      "parameters": {
+        "table": {
+          "__rl": true,
+          "value": "clientes",
+          "mode": "list",
+          "cachedResultName": "clientes"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "Nome",
+              "value": "={{ $json.dadosCadastro.Nome }}"
+            },
+            {
+              "column": "Email",
+              "value": "={{ $json.dadosCadastro.Email }}"
+            },
+            {
+              "column": "Telefone",
+              "value": "={{ $json.dadosCadastro.Telefone }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1088,
+        -160
+      ],
+      "id": "5b0d4792-f7ef-40e1-bf18-88bb9d8cd57d",
+      "name": "Cadastrar Cliente",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "clientes",
+          "mode": "list",
+          "cachedResultName": "clientes"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "Email",
+              "condition": "==",
+              "value": "={{ $('Direcionar Ação').item.json.dados.Email }}"
+            }
+          ]
+        },
+        "sort": {
+          "values": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1280,
+        -160
+      ],
+      "id": "841aefc8-6f82-4fba-a1f9-b56b882ea090",
+      "name": "Buscar Cliente ",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatar resposta de sucesso\nconst resultado = $input.all();\n\nif (resultado.length === 0 || !resultado[0].json || Object.keys(resultado[0].json).length === 0) {\n  return [{\n    json: {\n      sucesso: false,\n      mensagem: \"Erro ao cadastrar cliente.\",\n      cliente: null\n    }\n  }];\n}\n\nconst clienteData = resultado[0].json;\n\nreturn [{\n  json: {\n    sucesso: true,\n    mensagem: \"Cliente cadastrado com sucesso.\",\n    cliente: {\n      id: clienteData.IdCliente,\n      nome: clienteData.Nome,\n      email: clienteData[\"E-mail\"] || clienteData.Email,\n      telefone: clienteData.Telefone,\n      dataCadastro: clienteData.DataCadastro,\n      status: clienteData.Status\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        -144
+      ],
+      "id": "f53e6620-eefe-4729-b329-96a6b2df456c",
+      "name": "Formatar Resposta — Cadastro"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "clientes",
+          "mode": "list",
+          "cachedResultName": "clientes"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "IdCliente",
+              "condition": "==",
+              "value": "={{ $json.dados.IdCliente }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        848,
+        48
+      ],
+      "id": "4e5ee0c3-6e9f-4086-a8bd-2fbcee347b10",
+      "name": "Buscar Cliente",
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatar Resposta da Consulta de Cliente\nconst resultado = $input.all();\n\n// Verifica se o MySQL retornou algum registro\nif (resultado.length === 0 || !resultado[0].json || Object.keys(resultado[0].json).length === 0) {\n  // Cenário: Cliente não encontrado\n  return [{\n    json: {\n      sucesso: false,\n      mensagem: \"Cliente não encontrado.\",\n      cliente: null\n    }\n  }];\n}\n\n// Cliente encontrado - pega o primeiro registro\nconst clienteData = resultado[0].json;\n\n// Formata a resposta de sucesso\nreturn [{\n  json: {\n    sucesso: true,\n    cliente: {\n      id: clienteData.IdCliente,\n      nome: clienteData.Nome,\n      email: clienteData[\"E-mail\"] || clienteData.Email,\n      telefone: clienteData.Telefone,\n      dataCadastro: clienteData.DataCadastro,\n      status: clienteData.Status\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        48
+      ],
+      "id": "bcccc12e-a730-419b-a3b2-f39c4b3e1de1",
+      "name": "Formatar Resposta Consulta"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "clientes",
+          "mode": "list",
+          "cachedResultName": "clientes"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "IdCliente",
+              "condition": "==",
+              "value": "={{ $json.dados.IdCliente }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        624,
+        208
+      ],
+      "id": "0c644e29-593c-4942-aed3-453570655c39",
+      "name": "Buscar Cliente para Alteração",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2fbee27e-ac46-40c9-8460-188a822c4c24",
+              "leftValue": "={{ $json.IdCliente != null }}",
+              "rightValue": "=true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        800,
+        208
+      ],
+      "id": "c6ad2189-49b4-4c27-86ca-4a7a980a6b66",
+      "name": "Validar Existência"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "table": {
+          "__rl": true,
+          "value": "clientes",
+          "mode": "list",
+          "cachedResultName": "clientes"
+        },
+        "dataMode": "defineBelow",
+        "columnToMatchOn": "IdCliente",
+        "valueToMatchOn": "={{ $('Validar Existência').item.json.IdCliente }}",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "Nome",
+              "value": "={{ $('Validar e Preparar Requisição').item.json.dados.Nome }}"
+            },
+            {
+              "column": "Email",
+              "value": "={{ $('Validar e Preparar Requisição').item.json.dados.Email }}"
+            },
+            {
+              "column": "Telefone",
+              "value": "={{ $('Validar e Preparar Requisição').item.json.dados.Telefone }}"
+            },
+            {
+              "column": "Status",
+              "value": "={{ $('Validar e Preparar Requisição').item.json.dados.Status }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1200,
+        192
+      ],
+      "id": "3a120ed0-4e13-41bf-8e11-34076b538cef",
+      "name": "Update ",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "clientes",
+          "mode": "list",
+          "cachedResultName": "clientes"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "IdCliente",
+              "condition": "==",
+              "value": "={{ $('Validar Existência').item.json.IdCliente }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1392,
+        192
+      ],
+      "id": "e8c0c136-a510-4873-bb9e-76b21940bbe3",
+      "name": "Buscar Cliente Atualizado",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatar Resposta da Alteração de Cliente\nconst resultado = $input.all();\n\n// Verifica se o MySQL retornou algum registro\nif (resultado.length === 0 || !resultado[0].json || Object.keys(resultado[0].json).length === 0) {\n  // Cenário: Cliente não encontrado após atualização (erro inesperado)\n  return [{\n    json: {\n      sucesso: false,\n      mensagem: \"Erro ao atualizar cliente. Tente novamente.\",\n      cliente: null\n    }\n  }];\n}\n\n// Cliente atualizado - pega o primeiro registro\nconst clienteData = resultado[0].json;\n\n// Formata a resposta de sucesso\nreturn [{\n  json: {\n    sucesso: true,\n    mensagem: \"Cliente atualizado com sucesso.\",\n    cliente: {\n      id: clienteData.IdCliente,\n      nome: clienteData.Nome,\n      email: clienteData[\"E-mail\"] || clienteData.Email || \"\",\n      telefone: clienteData.Telefone || \"\",\n      dataCadastro: clienteData.DataCadastro || \"\",\n      status: clienteData.Status || \"\"\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        192
+      ],
+      "id": "4acc4562-5b10-44a2-be87-5d310be6b9a6",
+      "name": "Formatar Resposta"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Resposta quando cliente não existe para alteração\nreturn [{\n  json: {\n    sucesso: false,\n    mensagem: \"Cliente não encontrado para alteração.\",\n    cliente: null\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        384
+      ],
+      "id": "ba58486c-bd97-4007-942d-d4f03b5149ef",
+      "name": "Cliente Não Encontrado"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1888,
+        0
+      ],
+      "id": "f887d3db-c93a-42a4-a04a-581c364c90c2",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2599262c-3476-4fce-bc8b-83148116b6bd",
+              "leftValue": "={{ $json.emailExiste }}",
+              "rightValue": "=true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        928,
+        -272
+      ],
+      "id": "f840d651-1a26-4abb-8d50-3380de28f6c4",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Resposta quando cliente já existe\nreturn [{\n  json: {\n    sucesso: false,\n    mensagem: \"Cliente já cadastrado com este email.\",\n    cliente: $json.clienteExistente\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        -336
+      ],
+      "id": "1de7f50a-372f-4057-9770-25d97749198d",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "clientes",
+          "mode": "list",
+          "cachedResultName": "clientes"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "Email",
+              "condition": "==",
+              "value": "={{ $json.dados.Email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        -272
+      ],
+      "id": "f49a393b-ef0c-46cd-9fe8-9938953ac9dd",
+      "name": "Validador de Email",
+      "retryOnFail": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Decidir se cadastra ou retorna erro\nconst resultado = $input.all();\n\n// Verifica se o SELECT retornou dados (email existe)\nif (resultado.length > 0 && resultado[0].json && resultado[0].json.IdCliente) {\n  // Email já existe\n  const clienteExistente = resultado[0].json;\n  \n  return [{\n    json: {\n      emailExiste: true,\n      mensagem: \"Cliente já cadastrado com este email.\",\n      clienteExistente: {\n        id: clienteExistente.IdCliente,\n        nome: clienteExistente.Nome,\n        email: clienteExistente[\"E-mail\"] || clienteExistente.Email,\n        telefone: clienteExistente.Telefone,\n        dataCadastro: clienteExistente.DataCadastro,\n        status: clienteExistente.Status\n      }\n    }\n  }];\n} else {\n  // Email não existe - prepara para cadastro\n  // Tenta diferentes fontes para os dados originais\n  let dadosOriginais = null;\n  \n  // Tenta pegar do nó anterior\n  if ($('Direcionar Ação').item && $('Direcionar Ação').item.json) {\n    dadosOriginais = $('Direcionar Ação').item.json.dados;\n  }\n  \n  // Se não encontrou, tenta do $json atual\n  if (!dadosOriginais && $json && $json.dados) {\n    dadosOriginais = $json.dados;\n  }\n  \n  // Se ainda não encontrou, tenta do input\n  if (!dadosOriginais && resultado[0] && resultado[0].json) {\n    dadosOriginais = resultado[0].json.dados;\n  }\n  \n  return [{\n    json: {\n      emailExiste: false,\n      dadosCadastro: dadosOriginais\n    }\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        -272
+      ],
+      "id": "720c25f0-e82d-4adc-a38d-20183248becb",
+      "name": "Codigo de Validação"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar e Preparar Requisição",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar e Preparar Requisição": {
+      "main": [
+        [
+          {
+            "node": "Direcionar Ação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Direcionar Ação": {
+      "main": [
+        [
+          {
+            "node": "Validador de Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar Cliente para Alteração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cadastrar Cliente": {
+      "main": [
+        [
+          {
+            "node": "Buscar Cliente ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Cliente ": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta — Cadastro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Cliente": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Cliente para Alteração": {
+      "main": [
+        [
+          {
+            "node": "Validar Existência",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Existência": {
+      "main": [
+        [
+          {
+            "node": "Update ",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cliente Não Encontrado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update ": {
+      "main": [
+        [
+          {
+            "node": "Buscar Cliente Atualizado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Cliente Atualizado": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cliente Não Encontrado": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta — Cadastro": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta Consulta": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cadastrar Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validador de Email": {
+      "main": [
+        [
+          {
+            "node": "Codigo de Validação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Codigo de Validação": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "99ff8028-ab1e-41d2-a82d-00334f5d562c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "35b5070a2c6bd2f0645dce015ac46a82892b324b226e8814bc2c5f502e191450"
+  },
+  "nodeGroups": [],
+  "id": "kdsca3mXHrM4lVmL",
+  "tags": []
+}
