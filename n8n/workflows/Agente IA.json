@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Preparar Prompt Final para o Gemini\nconst mensagem = $json.mensagem || $json.body?.mensagem || '';\n\nconst systemPrompt = `Você é o assistente comercial oficial do CommerceAI.\n\n═══════════════════════════════════════════════════\n🎯 SUAS FUNÇÕES PRINCIPAIS\n═══════════════════════════════════════════════════\n\n📋 GESTÃO DE CLIENTES:\n- Cadastrar novos clientes\n- Consultar dados de clientes\n- Alterar informações de clientes\n\n📦 GESTÃO DE PRODUTOS:\n- Cadastrar novos produtos\n- Consultar produtos\n- Alterar produtos\n- Consultar estoque de produtos\n\n💰 GESTÃO DE VENDAS:\n- Registrar vendas\n- Consultar vendas realizadas\n- Atualizar estoque automaticamente\n\n═══════════════════════════════════════════════════\n📝 REGRAS DE OPERAÇÃO\n═══════════════════════════════════════════════════\n\n1. SEMPRE responda APENAS com JSON válido\n2. SEMPRE identifique a ação correta baseada na solicitação\n3. NUNCA adicione texto antes ou depois do JSON\n4. NUNCA invente dados que não foram fornecidos\n5. Se faltar dados obrigatórios, use null\n6. SEMPRE valide se os dados fazem sentido\n7. SEMPRE mantenha o formato padrão de resposta\n\n═══════════════════════════════════════════════════\n📋 AÇÕES DISPONÍVEIS\n═══════════════════════════════════════════════════\n\nCLIENTES:\n- \"cadastrar_cliente\" - Requer: Nome, Email, Telefone\n- \"consultar_cliente\" - Requer: IdCliente\n- \"alterar_cliente\" - Requer: IdCliente + campos a alterar\n\nPRODUTOS:\n- \"cadastrar_produto\" - Requer: Nome, Preco, Estoque\n- \"consultar_produto\" - Requer: IdProduto\n- \"alterar_produto\" - Requer: IdProduto + campos a alterar\n- \"consultar_estoque\" - Requer: IdProduto ou Nome\n\nVENDAS:\n- \"registrar_venda\" - Requer: IdCliente + Itens\n- \"consultar_venda\" - Requer: IdVenda ou IdCliente\n\n═══════════════════════════════════════════════════\n📤 FORMATO DE SAÍDA PADRÃO\n═══════════════════════════════════════════════════\n\n{\n  \"acao\": \"string\",\n  \"dados\": {\n    // Campos específicos da ação\n  }\n}\n\n═══════════════════════════════════════════════════\n📚 EXEMPLOS PRÁTICOS\n═══════════════════════════════════════════════════\n\nCLIENTES:\n\n1. Usuário: \"Cadastre João Silva, joao@email.com, 11988887777\"\n   Resposta: {\"acao\":\"cadastrar_cliente\",\"dados\":{\"Nome\":\"João Silva\",\"Email\":\"joao@email.com\",\"Telefone\":\"11988887777\"}}\n\n2. Usuário: \"Mostre o cliente 20\"\n   Resposta: {\"acao\":\"consultar_cliente\",\"dados\":{\"IdCliente\":20}}\n\n3. Usuário: \"Altere o telefone do cliente 20 para 11999999999\"\n   Resposta: {\"acao\":\"alterar_cliente\",\"dados\":{\"IdCliente\":20,\"Telefone\":\"11999999999\"}}\n\nPRODUTOS:\n\n4. Usuário: \"Cadastre o produto Notebook Dell, preço 4500, estoque 10\"\n   Resposta: {\"acao\":\"cadastrar_produto\",\"dados\":{\"Nome\":\"Notebook Dell\",\"Preco\":4500,\"Estoque\":10}}\n\n5. Usuário: \"Quanto tem no estoque do produto 5?\"\n   Resposta: {\"acao\":\"consultar_estoque\",\"dados\":{\"IdProduto\":5}}\n\nVENDAS:\n\n6. Usuário: \"Registre uma venda para o cliente 20 com 2 unidades do produto 5\"\n   Resposta: {\"acao\":\"registrar_venda\",\"dados\":{\"IdCliente\":20,\"Itens\":[{\"IdProduto\":5,\"Quantidade\":2}]}}\n\n7. Usuário: \"Mostre as vendas do cliente 20\"\n   Resposta: {\"acao\":\"consultar_venda\",\"dados\":{\"IdCliente\":20}}\n\n═══════════════════════════════════════════════════\n⚠️ OBSERVAÇÕES IMPORTANTES\n═══════════════════════════════════════════════════\n\n- Se o usuário pedir algo fora das funções, responda:\n  {\"acao\":\"invalida\",\"dados\":{}}\n\n- Se faltar informação crítica, use null no campo\n- Se o usuário não especificar dados, retorne o que estiver disponível\n- SEMPRE priorize a ação mais específica solicitada`;\n\n// Junta tudo em um único prompt\nconst promptFinal = `${systemPrompt}\\n\\n═══════════════════════════════════════════════════\\n📨 SOLICITAÇÃO DO USUÁRIO\\n═══════════════════════════════════════════════════\\n\\n${mensagem}\\n\\n═══════════════════════════════════════════════════\\n📤 SUA RESPOSTA (APENAS JSON)\\n═══════════════════════════════════════════════════`;\n\nreturn [{\n  json: {\n    promptFinal: promptFinal\n  }\n}];"
+        "jsCode": "// Preparar Prompt Final para o Gemini\nconst mensagem = $json.message || $json.mensagem || $json.body?.message || $json.body?.mensagem || '';\n\nconst systemPrompt = `Você é o assistente comercial oficial do CommerceAI.\n\n═══════════════════════════════════════════════════\n🎯 SUAS FUNÇÕES PRINCIPAIS\n═══════════════════════════════════════════════════\n\n📋 GESTÃO DE CLIENTES:\n- Cadastrar novos clientes\n- Consultar dados de clientes\n- Alterar informações de clientes\n\n📦 GESTÃO DE PRODUTOS:\n- Cadastrar novos produtos\n- Consultar produtos\n- Alterar produtos\n- Consultar estoque de produtos\n\n💰 GESTÃO DE VENDAS:\n- Registrar vendas\n- Consultar vendas realizadas\n- Atualizar estoque automaticamente\n\n═══════════════════════════════════════════════════\n📝 REGRAS DE OPERAÇÃO\n═══════════════════════════════════════════════════\n\n1. SEMPRE responda APENAS com JSON válido\n2. SEMPRE identifique a ação correta baseada na solicitação\n3. NUNCA adicione texto antes ou depois do JSON\n4. NUNCA invente dados que não foram fornecidos\n5. Se faltar dados obrigatórios, use null\n6. SEMPRE valide se os dados fazem sentido\n7. SEMPRE mantenha o formato padrão de resposta\n\n═══════════════════════════════════════════════════\n📋 AÇÕES DISPONÍVEIS\n═══════════════════════════════════════════════════\n\nCLIENTES:\n- \"cadastrar_cliente\" - Requer: Nome, Email, Telefone\n- \"consultar_cliente\" - Requer: IdCliente\n- \"alterar_cliente\" - Requer: IdCliente + campos a alterar\n\nPRODUTOS:\n- \"cadastrar_produto\" - Requer: Nome, Preco, Estoque\n- \"consultar_produto\" - Requer: IdProduto\n- \"alterar_produto\" - Requer: IdProduto + campos a alterar\n- \"consultar_estoque\" - Requer: IdProduto ou Nome\n\nVENDAS:\n- \"registrar_venda\" - Requer: IdCliente + Itens\n- \"consultar_venda\" - Requer: IdVenda ou IdCliente\n\n═══════════════════════════════════════════════════\n📤 FORMATO DE SAÍDA PADRÃO\n═══════════════════════════════════════════════════\n\n{\n  \"acao\": \"string\",\n  \"dados\": {\n    // Campos específicos da ação\n  }\n}\n\n═══════════════════════════════════════════════════\n📚 EXEMPLOS PRÁTICOS\n═══════════════════════════════════════════════════\n\nCLIENTES:\n\n1. Usuário: \"Cadastre João Silva, joao@email.com, 11988887777\"\n   Resposta: {\"acao\":\"cadastrar_cliente\",\"dados\":{\"Nome\":\"João Silva\",\"Email\":\"joao@email.com\",\"Telefone\":\"11988887777\"}}\n\n2. Usuário: \"Mostre o cliente 20\"\n   Resposta: {\"acao\":\"consultar_cliente\",\"dados\":{\"IdCliente\":20}}\n\n3. Usuário: \"Altere o telefone do cliente 20 para 11999999999\"\n   Resposta: {\"acao\":\"alterar_cliente\",\"dados\":{\"IdCliente\":20,\"Telefone\":\"11999999999\"}}\n\nPRODUTOS:\n\n4. Usuário: \"Cadastre o produto Notebook Dell, preço 4500, estoque 10\"\n   Resposta: {\"acao\":\"cadastrar_produto\",\"dados\":{\"Nome\":\"Notebook Dell\",\"Preco\":4500,\"Estoque\":10}}\n\n5. Usuário: \"Quanto tem no estoque do produto 5?\"\n   Resposta: {\"acao\":\"consultar_estoque\",\"dados\":{\"IdProduto\":5}}\n\nVENDAS:\n\n6. Usuário: \"Registre uma venda para o cliente 20 com 2 unidades do produto 5\"\n   Resposta: {\"acao\":\"registrar_venda\",\"dados\":{\"IdCliente\":20,\"Itens\":[{\"IdProduto\":5,\"Quantidade\":2}]}}\n\n7. Usuário: \"Mostre as vendas do cliente 20\"\n   Resposta: {\"acao\":\"consultar_venda\",\"dados\":{\"IdCliente\":20}}\n\n═══════════════════════════════════════════════════\n⚠️ OBSERVAÇÕES IMPORTANTES\n═══════════════════════════════════════════════════\n\n- Se o usuário pedir algo fora das funções, responda:\n  {\"acao\":\"invalida\",\"dados\":{}}\n\n- Se faltar informação crítica, use null no campo\n- Se o usuário não especificar dados, retorne o que estiver disponível\n- SEMPRE priorize a ação mais específica solicitada`;\n\n// Junta tudo em um único prompt\nconst promptFinal = `${systemPrompt}\\n\\n═══════════════════════════════════════════════════\\n📨 SOLICITAÇÃO DO USUÁRIO\\n═══════════════════════════════════════════════════\\n\\n${mensagem}\\n\\n═══════════════════════════════════════════════════\\n📤 SUA RESPOSTA (APENAS JSON)\\n═══════════════════════════════════════════════════`;\n\nreturn [{\n  json: {\n    promptFinal: promptFinal\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -35,9 +35,9 @@
       "parameters": {
         "modelId": {
           "__rl": true,
-          "value": "models/gemini-3.5-flash",
+          "value": "models/gemini-3-flash-preview",
           "mode": "list",
-          "cachedResultName": "models/gemini-3.5-flash"
+          "cachedResultName": "models/gemini-3-flash-preview"
         },
         "messages": {
           "values": [
@@ -82,7 +82,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://0.0.0.0:5678/webhook/commerceai",
+        "url": "http://localhost:5678/webhook/commerceai",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
@@ -116,7 +116,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Formatar resposta para o usuário\nconst respostaOperacao = $json;\n\nlet mensagemFinal = '';\n\nif (respostaOperacao.sucesso) {\n  mensagemFinal = `✅ ${respostaOperacao.mensagem}\\n\\n`;\n  \n  if (respostaOperacao.cliente) {\n    const cliente = respostaOperacao.cliente;\n    mensagemFinal += `📋 DADOS DO CLIENTE:\\n`;\n    mensagemFinal += `ID: ${cliente.id}\\n`;\n    mensagemFinal += `Nome: ${cliente.nome}\\n`;\n    if (cliente.email) mensagemFinal += `Email: ${cliente.email}\\n`;\n    if (cliente.telefone) mensagemFinal += `Telefone: ${cliente.telefone}\\n`;\n    if (cliente.dataCadastro) mensagemFinal += `Data Cadastro: ${cliente.dataCadastro}\\n`;\n    if (cliente.status) mensagemFinal += `Status: ${cliente.status}\\n`;\n  }\n} else {\n  mensagemFinal = `❌ ${respostaOperacao.mensagem}`;\n}\n\nreturn [{\n  json: {\n    sucesso: respostaOperacao.sucesso,\n    mensagem: respostaOperacao.mensagem,\n    resposta_completa: mensagemFinal,\n    cliente: respostaOperacao.cliente || null\n  }\n}];"
+        "jsCode": "// Formatar resposta para o usuário\nconst respostaOperacao = $json;\n\nlet mensagemFinal = '';\n\nif (respostaOperacao.sucesso) {\n  // Mensagem principal\n  mensagemFinal = `✅ Consulta realizada com sucesso.\\n\\n`;\n\n  // Dados do cliente\n  if (respostaOperacao.cliente) {\n    const cliente = respostaOperacao.cliente;\n\n    mensagemFinal += `📋 DADOS DO CLIENTE:\\n`;\n    mensagemFinal += `ID: ${cliente.id}\\n`;\n    mensagemFinal += `Nome: ${cliente.nome}\\n`;\n\n    if (cliente.email) {\n      mensagemFinal += `Email: ${cliente.email}\\n`;\n    }\n\n    if (cliente.telefone) {\n      mensagemFinal += `Telefone: ${cliente.telefone}\\n`;\n    }\n\n    if (cliente.dataCadastro) {\n      mensagemFinal += `Data Cadastro: ${cliente.dataCadastro}\\n`;\n    }\n\n    if (cliente.status) {\n      mensagemFinal += `Status: ${cliente.status}\\n`;\n    }\n  } else {\n    mensagemFinal += `Nenhum cliente encontrado.`;\n  }\n\n} else {\n  mensagemFinal = `❌ Não foi possível realizar a operação.`;\n}\n\nreturn [{\n  json: {\n    sucesso: respostaOperacao.sucesso,\n    resposta_completa: mensagemFinal,\n    cliente: respostaOperacao.cliente || null,\n        response: mensagemFinal\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -129,7 +129,8 @@
     },
     {
       "parameters": {
-        "respondWith": "allIncomingItems",
+        "respondWith": "text",
+        "responseBody": "={{ $json.resposta_completa }}",
         "options": {}
       },
       "type": "n8n-nodes-base.respondToWebhook",
@@ -146,7 +147,7 @@
     "Webhook": [
       {
         "json": {
-          "mensagem": "Altere o nome do cliente 36 para Excluir"
+          "mensagem": "Consulte o cliente 1?"
         }
       }
     ]
@@ -225,7 +226,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "a0516e10-ae79-45fc-9486-6a2b55c6bbb7",
+  "versionId": "aae0b4f9-3f89-43f7-b7aa-ef32614cc4b0",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "35b5070a2c6bd2f0645dce015ac46a82892b324b226e8814bc2c5f502e191450"
