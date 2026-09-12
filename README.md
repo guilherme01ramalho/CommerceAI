@@ -341,12 +341,6 @@ CommerceAI/
 ├── database/
 │   └── schema.sql
 │
-├── docs/
-│   ├── documentacao_sprint_clientes.md
-│   ├── documentacao_sprint_produtos.md
-│   ├── documentacao_sprint_vendas.md
-│   └── documentacao_projeto_final.md
-│
 ├── frontend/
 │   └── ...
 │
