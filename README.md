@@ -154,10 +154,10 @@ A segunda entrega amplia o sistema para o gerenciamento de produtos.
 
 | Operação            | Status | Descrição             |
 | ------------------- | ------ | --------------------- |
-| `cadastrar_produto` | 🔄     | Cadastro de produtos  |
-| `consultar_produto` | 🔄     | Consulta de produtos  |
-| `alterar_produto`   | 🔄     | Alteração de produtos |
-| `consultar_estoque` | 🔄     | Consulta de estoque   |
+| `cadastrar_produto` | ✅      | Cadastro de produtos  |
+| `consultar_produto` | ✅      | Consulta de produtos  |
+| `alterar_produto`   | ✅       | Alteração de produtos |
+| `consultar_estoque` | ✅       | Consulta de estoque   |
 
 ### 🤖 Evolução do Agente de IA
 
