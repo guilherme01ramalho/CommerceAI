@@ -194,27 +194,14 @@ A interface passa a possuir:
 
 A terceira entrega transforma o CommerceAI em uma plataforma de gestão mais completa.
 
-### 💰 Vendas
-
-| Operação          | Status |
-| ----------------- | ------ |
-| `registrar_venda` | 📅     |
-| `consultar_venda` | 📅     |
 
 ### 📥 Compras
 
-| Operação           | Status |
-| ------------------ | ------ |
-| `registrar_compra` | 📅     |
-| `consultar_compra` | 📅     |
+| Operação           | Status | Descrição
+| ------------------ | ------ | --------------------- |
+| `registrar_compra` | ✅      | Registrar uma Compra |
+| `consultar_compra` | ✅      | Consultar uma Compra |
 
-### 📊 Estoque
-
-| Operação                  | Status |
-| ------------------------- | ------ |
-| `consultar_estoque`       | 📅     |
-| `consultar_estoque_baixo` | 📅     |
-| Movimentação de estoque   | 📅     |
 
 ### 📈 Dashboard
 
@@ -222,9 +209,7 @@ O sistema passa a apresentar uma visão geral dos dados:
 
 * Total de clientes
 * Total de produtos
-* Total de vendas
-* Valor das vendas
-* Total de compras
+* Total de produtos vendidos
 * Produtos com estoque baixo
 * Gráficos de acompanhamento
 * Alertas de estoque
