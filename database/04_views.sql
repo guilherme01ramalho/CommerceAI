@@ -21,6 +21,7 @@ WHERE Ativo = TRUE
   AND Estoque > 0;
 
 
+
 -- ============================================
 -- VIEW: Estoque disponível
 -- ============================================
@@ -53,3 +54,4 @@ INNER JOIN itenscompra
 GROUP BY
     clientes.IdCliente,
     clientes.Nome;
+

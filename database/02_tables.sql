@@ -33,6 +33,7 @@ CREATE TABLE produtos (
   COLLATE=utf8mb4_0900_ai_ci;
 
 
+
 CREATE TABLE compras (
     IdCompra INT NOT NULL AUTO_INCREMENT,
     IdCliente INT NOT NULL,
