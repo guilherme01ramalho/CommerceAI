@@ -1,0 +1,96 @@
+{
+  "name": "Dashboard",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "commerceai-dashboard",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "081a16a6-413f-48a6-911f-050f5a598966",
+      "name": "Webhook",
+      "webhookId": "bf69562a-0168-47e4-8c86-72217f9df5ef"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    (SELECT COUNT(*) FROM Clientes) AS totalClientes,\n    (SELECT COUNT(*) FROM Produtos) AS totalProdutos,\n    (SELECT COUNT(*) FROM Compras) AS totalCompras,\n    (\n        SELECT COALESCE(SUM(ValorTotal), 0)\n        FROM Compras\n        WHERE Status IN ('PENDENTE', 'PAGO')\n    ) AS valorTotalCompras,\n    (\n        SELECT COUNT(*)\n        FROM Produtos\n        WHERE Estoque <= 5\n    ) AS produtosEstoqueBaixo;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "3642e2d8-f714-4cbe-ae64-9f5baabea53f",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        448,
+        0
+      ],
+      "id": "2500dde1-2a1d-4493-889c-15205ee7f3ba",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "5d27ad0a-3c95-46b4-8d5d-2590309a81f8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "35b5070a2c6bd2f0645dce015ac46a82892b324b226e8814bc2c5f502e191450"
+  },
+  "nodeGroups": [],
+  "id": "mLDM0q7o3iojeC7T",
+  "tags": []
+}

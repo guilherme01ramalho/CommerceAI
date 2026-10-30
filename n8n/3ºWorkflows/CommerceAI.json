@@ -1,0 +1,2184 @@
+{
+  "name": "CommerceAI",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "commerceai",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -576,
+        1808
+      ],
+      "id": "c78a0be5-6cdc-4425-a5e9-4036a7aa825c",
+      "name": "Webhook",
+      "webhookId": "7bc40438-0829-41ae-8744-449a4ad3e9dc"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst body = $json.body ?? $json;\n\nconst acao = String(body.acao ?? '').trim().toLowerCase();\nconst dados = body.dados ?? {};\n\nconst erros = [];\n\n// =====================================================\n// AÇÕES DO COMMERCEAI\n// =====================================================\n\nconst acoesPermitidas = [\n\n  // CLIENTES\n  'cadastrar_cliente',\n  'consultar_cliente',\n  'alterar_cliente',\n\n  // PRODUTOS\n  'cadastrar_produto',\n  'consultar_produto',\n  'alterar_produto',\n\n  // COMPRAS\n  'cadastrar_compra',\n  'consultar_compra',\n\n  // OUTROS\n  'dashboard',\n  'relatorios'\n];\n\n// =====================================================\n// VALIDAÇÃO DA AÇÃO\n// =====================================================\n\nif (!acao) {\n  erros.push(\n    'O campo \"acao\" é obrigatório.'\n  );\n}\n\nif (\n  acao &&\n  !acoesPermitidas.includes(acao)\n) {\n  erros.push(\n    `Ação \"${acao}\" não é suportada.`\n  );\n}\n\n// =====================================================\n// VALIDAÇÃO DOS DADOS\n// =====================================================\n\nif (\n  !body.dados ||\n  typeof body.dados !== 'object' ||\n  Array.isArray(body.dados)\n) {\n  erros.push(\n    'O campo \"dados\" é obrigatório e deve ser um objeto.'\n  );\n}\n\n// =====================================================\n// VALIDAÇÕES DE CLIENTE\n// =====================================================\n\nif (acao === 'cadastrar_cliente') {\n\n  const nomeCadastro =\n    dados.Nome ??\n    dados.nome ??\n    null;\n\n  if (\n    !nomeCadastro ||\n    String(nomeCadastro).trim() === ''\n  ) {\n    erros.push(\n      'O campo \"nome\" é obrigatório para cadastrar um cliente.'\n    );\n  }\n\n  const emailCadastro =\n    dados['E-mail'] ??\n    dados.Email ??\n    dados.email ??\n    null;\n\n  if (\n    !emailCadastro ||\n    String(emailCadastro).trim() === ''\n  ) {\n    erros.push(\n      'O campo \"email\" é obrigatório para cadastrar um cliente.'\n    );\n  }\n}\n\n// =====================================================\n// CONSULTAR / ALTERAR CLIENTE / CONSULTAR COMPRA\n// =====================================================\n\nif (\n  acao === 'consultar_cliente' ||\n  acao === 'alterar_cliente' ||\n  acao === 'consultar_compra'\n) {\n\n  if (\n    !dados.IdCliente &&\n    !dados.idCliente &&\n    !dados.id\n  ) {\n    erros.push(\n      'O campo \"IdCliente\" é obrigatório.'\n    );\n  }\n}\n\n// =====================================================\n// VALIDAÇÃO DE E-MAIL\n// =====================================================\n\nconst emailDados =\n  dados['E-mail'] ??\n  dados.Email ??\n  dados.email ??\n  null;\n\nif (emailDados) {\n\n  const email = String(emailDados).trim();\n\n  const emailValido =\n    /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email);\n\n  if (!emailValido) {\n    erros.push(\n      'O formato do e-mail é inválido.'\n    );\n  }\n}\n\n// =====================================================\n// VALIDAÇÕES DE PRODUTO\n// =====================================================\n\nif (acao === 'cadastrar_produto') {\n\n  const nomeProduto =\n    dados.Nome ??\n    dados.nome ??\n    null;\n\n  const precoProduto =\n    dados.Preco ??\n    dados.preco ??\n    null;\n\n  const estoqueProduto =\n    dados.Estoque ??\n    dados.estoque ??\n    null;\n\n  // ---------------------------------------------------\n  // Nome\n  // ---------------------------------------------------\n\n  if (\n    !nomeProduto ||\n    String(nomeProduto).trim() === ''\n  ) {\n    erros.push(\n      'O campo \"nome\" é obrigatório para cadastrar um produto.'\n    );\n  }\n\n  // ---------------------------------------------------\n  // Preço\n  // ---------------------------------------------------\n\n  if (\n    precoProduto === null ||\n    precoProduto === undefined ||\n    precoProduto === ''\n  ) {\n\n    erros.push(\n      'O campo \"preco\" é obrigatório para cadastrar um produto.'\n    );\n\n  } else if (\n    isNaN(Number(precoProduto))\n  ) {\n\n    erros.push(\n      'O campo \"preco\" deve ser um número.'\n    );\n  }\n\n  // ---------------------------------------------------\n  // Estoque\n  // ---------------------------------------------------\n\n  if (\n    estoqueProduto === null ||\n    estoqueProduto === undefined ||\n    estoqueProduto === ''\n  ) {\n\n    erros.push(\n      'O campo \"estoque\" é obrigatório para cadastrar um produto.'\n    );\n\n  } else if (\n    isNaN(Number(estoqueProduto))\n  ) {\n\n    erros.push(\n      'O campo \"estoque\" deve ser um número.'\n    );\n  }\n}\n\n// =====================================================\n// CONSULTAR PRODUTO\n// =====================================================\n\nif (acao === 'consultar_produto') {\n\n  const idProduto =\n    dados.IdProduto ??\n    dados.idProduto ??\n    dados.id ??\n    null;\n\n  const nomeProduto =\n    dados.Nome ??\n    dados.nome ??\n    null;\n\n  const skuProduto =\n    dados.SKU ??\n    dados.sku ??\n    null;\n\n  const categoriaProduto =\n    dados.Categoria ??\n    dados.categoria ??\n    null;\n\n  const codigoBarrasProduto =\n    dados.CodigoBarras ??\n    dados.codigoBarras ??\n    dados.codigo_barras ??\n    null;\n\n  const possuiCriterio = [\n    idProduto,\n    nomeProduto,\n    skuProduto,\n    categoriaProduto,\n    codigoBarrasProduto\n  ].some(\n    valor =>\n      valor !== null &&\n      valor !== undefined &&\n      String(valor).trim() !== ''\n  );\n\n  if (!possuiCriterio) {\n\n    erros.push(\n      'Informe pelo menos um critério para consultar o produto: IdProduto, Nome, SKU, Categoria ou CodigoBarras.'\n    );\n  }\n}\n\n// =====================================================\n// ALTERAR PRODUTO\n// =====================================================\n\nif (acao === 'alterar_produto') {\n\n  const idProduto =\n    dados.IdProduto ??\n    dados.idProduto ??\n    dados.id ??\n    null;\n\n  if (!idProduto) {\n\n    erros.push(\n      'O campo \"IdProduto\" é obrigatório para alterar um produto.'\n    );\n  }\n}\n\n// =====================================================\n// NORMALIZAÇÃO DOS DADOS\n// =====================================================\n\nlet dadosNormalizados = {};\n\n// =====================================================\n// CLIENTES\n// =====================================================\n\nif (\n  acao === 'cadastrar_cliente' ||\n  acao === 'consultar_cliente' ||\n  acao === 'alterar_cliente'\n) {\n\n  dadosNormalizados = {\n\n    IdCliente:\n      dados.IdCliente ??\n      dados.id ??\n      null,\n\n    Nome:\n      dados.Nome ??\n      dados.nome ??\n      null,\n\n    Email:\n      dados['E-mail'] ??\n      dados.Email ??\n      dados.email ??\n      null,\n\n    Telefone:\n      dados.Telefone ??\n      dados.telefone ??\n      null,\n\n    Status:\n      dados.Status ??\n      dados.status ??\n      null\n  };\n}\n\n// =====================================================\n// CADASTRAR PRODUTO\n// =====================================================\n\nelse if (\n  acao === 'cadastrar_produto'\n) {\n\n  dadosNormalizados = {\n\n    Nome:\n      dados.Nome ??\n      dados.nome ??\n      null,\n\n    Descricao:\n      dados.Descricao ??\n      dados.descricao ??\n      null,\n\n    Preco:\n      dados.Preco ??\n      dados.preco ??\n      null,\n\n    Estoque:\n      dados.Estoque ??\n      dados.estoque ??\n      null,\n\n    Categoria:\n      dados.Categoria ??\n      dados.categoria ??\n      null,\n\n    CodigoBarras:\n      dados.CodigoBarras ??\n      dados.codigoBarras ??\n      dados.codigo_barras ??\n      null,\n\n    SKU:\n      dados.SKU ??\n      dados.sku ??\n      null\n  };\n}\n\n// =====================================================\n// CONSULTAR PRODUTO\n// =====================================================\n\nelse if (\n  acao === 'consultar_produto'\n) {\n\n  dadosNormalizados = {\n\n    IdProduto:\n      dados.IdProduto ??\n      dados.idProduto ??\n      dados.id ??\n      null,\n\n    Nome:\n      dados.Nome ??\n      dados.nome ??\n      null,\n\n    SKU:\n      dados.SKU ??\n      dados.sku ??\n      null,\n\n    Categoria:\n      dados.Categoria ??\n      dados.categoria ??\n      null,\n\n    CodigoBarras:\n      dados.CodigoBarras ??\n      dados.codigoBarras ??\n      dados.codigo_barras ??\n      null\n  };\n}\n\n// =====================================================\n// ALTERAR PRODUTO\n// =====================================================\n\nelse if (\n  acao === 'alterar_produto'\n) {\n\n  dadosNormalizados = {\n\n    IdProduto:\n      dados.IdProduto ??\n      dados.idProduto ??\n      dados.id ??\n      null,\n\n    Nome:\n      dados.Nome ??\n      dados.nome ??\n      null,\n\n    Descricao:\n      dados.Descricao ??\n      dados.descricao ??\n      null,\n\n    Preco:\n      dados.Preco ??\n      dados.preco ??\n      null,\n\n    Estoque:\n      dados.Estoque ??\n      dados.estoque ??\n      null,\n\n    Categoria:\n      dados.Categoria ??\n      dados.categoria ??\n      null,\n\n    CodigoBarras:\n      dados.CodigoBarras ??\n      dados.codigoBarras ??\n      dados.codigo_barras ??\n      null,\n\n    SKU:\n      dados.SKU ??\n      dados.sku ??\n      null\n  };\n}\n\n// =====================================================\n// CONSULTAR COMPRAS\n// =====================================================\n\nelse if (\n  acao === 'consultar_compra'\n) {\n\n  dadosNormalizados = {\n\n    IdCliente:\n      dados.IdCliente ??\n      dados.idCliente ??\n      dados.id ??\n      null\n  };\n}\n\n// =====================================================\n// AÇÕES FUTURAS / OUTROS\n// =====================================================\n\nelse if (\n  acao === 'cadastrar_compra' ||\n  acao === 'dashboard' ||\n  acao === 'relatorios'\n) {\n\n  dadosNormalizados = {\n    ...dados\n  };\n}\n\n// =====================================================\n// RETORNO\n// =====================================================\n\nreturn [\n  {\n    json: {\n\n      sucesso:\n        erros.length === 0,\n\n      acao,\n\n      dados:\n        dadosNormalizados,\n\n      erros\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -304,
+        1808
+      ],
+      "id": "d6b2eabf-6880-498d-99be-8872f8db30f8",
+      "name": "Validar e Preparar Requisição"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ String($json.Acao ?? $json.acao ?? '').trim().toLowerCase() }}",
+                    "rightValue": "cadastrar_cliente",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "2011106e-6fc8-454e-aedb-390f3b985f46"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "saída 1"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a8365b9a-841c-4a73-9508-04f5a3128d54",
+                    "leftValue": "={{ String($json.Acao ?? $json.acao ?? '').trim().toLowerCase() }}",
+                    "rightValue": "consultar_cliente",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Saída 2"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "70238e25-e4a1-494e-ad85-8a63e42ec5ae",
+                    "leftValue": "={{ String($json.Acao ?? $json.acao ?? '').trim().toLowerCase() }}",
+                    "rightValue": "alterar_cliente",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Saída 3"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "6bc756f1-85af-4cbf-88b7-6675ba10845c",
+                    "leftValue": "={{ String($json.Acao ?? $json.acao ?? '').trim().toLowerCase() }}",
+                    "rightValue": "cadastrar_produto",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Saída 4"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "1ad6a3a2-4ca4-4c11-9e82-aef9ed82ec92",
+                    "leftValue": "={{ String($json.Acao ?? $json.acao ?? '').trim().toLowerCase() }}",
+                    "rightValue": "consultar_produto",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "1b912c59-dccc-49ca-af10-d7ab14ec5208",
+                    "leftValue": "={{ String($json.Acao ?? $json.acao ?? '').trim().toLowerCase() }}",
+                    "rightValue": "alterar_produto",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "18d497cc-3656-441c-8a89-d46982661ea4",
+                    "leftValue": "={{ String($json.Acao ?? $json.acao ?? '').trim().toLowerCase() }}",
+                    "rightValue": "cadastrar_compra",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "4acfc6f3-caa0-4916-8310-a421343f7cf7",
+                    "leftValue": "={{ String($json.Acao ?? $json.acao ?? '').trim().toLowerCase() }}",
+                    "rightValue": "consultar_compra",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -48,
+        1696
+      ],
+      "id": "2db2710a-e444-47de-b163-9cc38c8bfc04",
+      "name": "Direcionar Ação"
+    },
+    {
+      "parameters": {
+        "table": {
+          "__rl": true,
+          "value": "clientes",
+          "mode": "list",
+          "cachedResultName": "clientes"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "Nome",
+              "value": "={{ $json.dadosCadastro.Nome }}"
+            },
+            {
+              "column": "Email",
+              "value": "={{ $json.dadosCadastro.Email }}"
+            },
+            {
+              "column": "Telefone",
+              "value": "={{ $json.dadosCadastro.Telefone }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1120,
+        1088
+      ],
+      "id": "5b0d4792-f7ef-40e1-bf18-88bb9d8cd57d",
+      "name": "Cadastrar Cliente",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "clientes",
+          "mode": "list",
+          "cachedResultName": "clientes"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "Email",
+              "condition": "==",
+              "value": "={{ $('Direcionar Ação').item.json.dados.Email }}"
+            }
+          ]
+        },
+        "sort": {
+          "values": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1280,
+        1088
+      ],
+      "id": "841aefc8-6f82-4fba-a1f9-b56b882ea090",
+      "name": "Buscar Cliente ",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatar resposta de sucesso\nconst resultado = $input.all();\n\nif (resultado.length === 0 || !resultado[0].json || Object.keys(resultado[0].json).length === 0) {\n  return [{\n    json: {\n      sucesso: false,\n      mensagem: \"Erro ao cadastrar cliente.\",\n      cliente: null\n    }\n  }];\n}\n\nconst clienteData = resultado[0].json;\n\nreturn [{\n  json: {\n    sucesso: true,\n    mensagem: \"Cliente cadastrado com sucesso.\",\n    cliente: {\n      id: clienteData.IdCliente,\n      nome: clienteData.Nome,\n      email: clienteData[\"E-mail\"] || clienteData.Email,\n      telefone: clienteData.Telefone,\n      dataCadastro: clienteData.DataCadastro,\n      status: clienteData.Status\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1424,
+        1088
+      ],
+      "id": "f53e6620-eefe-4729-b329-96a6b2df456c",
+      "name": "Formatar Resposta — Cadastro"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatar Resposta da Consulta de Cliente\nconst resultado = $input.all();\n\n// Verifica se o MySQL retornou algum registro\nif (resultado.length === 0 || !resultado[0].json || Object.keys(resultado[0].json).length === 0) {\n  // Cenário: Cliente não encontrado\n  return [{\n    json: {\n      sucesso: false,\n      mensagem: \"Cliente não encontrado.\",\n      cliente: null\n    }\n  }];\n}\n\n// Cliente encontrado - pega o primeiro registro\nconst clienteData = resultado[0].json;\n\n// Formata a resposta de sucesso\nreturn [{\n  json: {\n    sucesso: true,\n    cliente: {\n      id: clienteData.IdCliente,\n      nome: clienteData.Nome,\n      email: clienteData[\"E-mail\"] || clienteData.Email,\n      telefone: clienteData.Telefone,\n      dataCadastro: clienteData.DataCadastro,\n      status: clienteData.Status\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        1200
+      ],
+      "id": "bcccc12e-a730-419b-a3b2-f39c4b3e1de1",
+      "name": "Formatar Resposta Consulta"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "clientes",
+          "mode": "list",
+          "cachedResultName": "clientes"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "IdCliente",
+              "condition": "==",
+              "value": "={{ $json.dados.IdCliente }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        1360
+      ],
+      "id": "0c644e29-593c-4942-aed3-453570655c39",
+      "name": "Buscar Cliente para Alteração",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2fbee27e-ac46-40c9-8460-188a822c4c24",
+              "leftValue": "={{ $json.IdCliente != null }}",
+              "rightValue": "=true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        752,
+        1360
+      ],
+      "id": "c6ad2189-49b4-4c27-86ca-4a7a980a6b66",
+      "name": "Validar Existência"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "clientes",
+          "mode": "list",
+          "cachedResultName": "clientes"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "IdCliente",
+              "condition": "==",
+              "value": "={{ $('Validar Existência').item.json.IdCliente }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1280,
+        1264
+      ],
+      "id": "e8c0c136-a510-4873-bb9e-76b21940bbe3",
+      "name": "Buscar Cliente Atualizado",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Formatar Resposta da Alteração de Cliente\nconst resultado = $input.all();\n\n// Verifica se o MySQL retornou algum registro\nif (resultado.length === 0 || !resultado[0].json || Object.keys(resultado[0].json).length === 0) {\n  // Cenário: Cliente não encontrado após atualização (erro inesperado)\n  return [{\n    json: {\n      sucesso: false,\n      mensagem: \"Erro ao atualizar cliente. Tente novamente.\",\n      cliente: null\n    }\n  }];\n}\n\n// Cliente atualizado - pega o primeiro registro\nconst clienteData = resultado[0].json;\n\n// Formata a resposta de sucesso\nreturn [{\n  json: {\n    sucesso: true,\n    mensagem: \"Cliente atualizado com sucesso.\",\n    cliente: {\n      id: clienteData.IdCliente,\n      nome: clienteData.Nome,\n      email: clienteData[\"E-mail\"] || clienteData.Email || \"\",\n      telefone: clienteData.Telefone || \"\",\n      dataCadastro: clienteData.DataCadastro || \"\",\n      status: clienteData.Status || \"\"\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1424,
+        1264
+      ],
+      "id": "4acc4562-5b10-44a2-be87-5d310be6b9a6",
+      "name": "Formatar Resposta"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Resposta quando cliente não existe para alteração\nreturn [{\n  json: {\n    sucesso: false,\n    mensagem: \"Cliente não encontrado para alteração.\",\n    cliente: null\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        1392
+      ],
+      "id": "ba58486c-bd97-4007-942d-d4f03b5149ef",
+      "name": "Cliente Não Encontrado"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2816,
+        1824
+      ],
+      "id": "f887d3db-c93a-42a4-a04a-581c364c90c2",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2599262c-3476-4fce-bc8b-83148116b6bd",
+              "leftValue": "={{ $json.emailExiste }}",
+              "rightValue": "=true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        928,
+        992
+      ],
+      "id": "f840d651-1a26-4abb-8d50-3380de28f6c4",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "clientes",
+          "mode": "list",
+          "cachedResultName": "clientes"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "Email",
+              "condition": "==",
+              "value": "={{ $json.dados.Email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        992
+      ],
+      "id": "f49a393b-ef0c-46cd-9fe8-9938953ac9dd",
+      "name": "Validador de Email",
+      "retryOnFail": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Decidir se cadastra ou retorna erro\nconst resultado = $input.all();\n\n// Verifica se o SELECT retornou dados (email existe)\nif (resultado.length > 0 && resultado[0].json && resultado[0].json.IdCliente) {\n  // Email já existe\n  const clienteExistente = resultado[0].json;\n  \n  return [{\n    json: {\n      emailExiste: true,\n      mensagem: \"Cliente já cadastrado com este email.\",\n      clienteExistente: {\n        id: clienteExistente.IdCliente,\n        nome: clienteExistente.Nome,\n        email: clienteExistente[\"E-mail\"] || clienteExistente.Email,\n        telefone: clienteExistente.Telefone,\n        dataCadastro: clienteExistente.DataCadastro,\n        status: clienteExistente.Status\n      }\n    }\n  }];\n} else {\n  // Email não existe - prepara para cadastro\n  // Tenta diferentes fontes para os dados originais\n  let dadosOriginais = null;\n  \n  // Tenta pegar do nó anterior\n  if ($('Direcionar Ação').item && $('Direcionar Ação').item.json) {\n    dadosOriginais = $('Direcionar Ação').item.json.dados;\n  }\n  \n  // Se não encontrou, tenta do $json atual\n  if (!dadosOriginais && $json && $json.dados) {\n    dadosOriginais = $json.dados;\n  }\n  \n  // Se ainda não encontrou, tenta do input\n  if (!dadosOriginais && resultado[0] && resultado[0].json) {\n    dadosOriginais = resultado[0].json.dados;\n  }\n  \n  return [{\n    json: {\n      emailExiste: false,\n      dadosCadastro: dadosOriginais\n    }\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        992
+      ],
+      "id": "720c25f0-e82d-4adc-a38d-20183248becb",
+      "name": "Codigo de Validação"
+    },
+    {
+      "parameters": {
+        "table": {
+          "__rl": true,
+          "value": "produtos",
+          "mode": "name"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "Nome",
+              "value": "={{ $json.dados.Nome }}"
+            },
+            {
+              "column": "Descricao",
+              "value": "={{ $json.dados.Descricao }}"
+            },
+            {
+              "column": "Preco",
+              "value": "={{ $json.dados.Preco }}"
+            },
+            {
+              "column": "Estoque",
+              "value": "={{ $json.dados.Estoque }}"
+            },
+            {
+              "column": "Categoria",
+              "value": "={{ $json.dados.Categoria }}"
+            },
+            {
+              "column": "CodigoBarras",
+              "value": "={{ $json.dados.CodigoBarras }}"
+            },
+            {
+              "column": "SKU",
+              "value": "={{ $json.dados.SKU }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1072,
+        1728
+      ],
+      "id": "d64b5b1f-af25-4ac0-a3d8-9618a9e33ddc",
+      "name": "Cadastrar_Produto",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "CLIENTES",
+        "height": 576,
+        "width": 1712,
+        "color": "#0B6C04"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        528,
+        944
+      ],
+      "typeVersion": 1,
+      "id": "71a43691-b207-44fb-b337-bbdb5ddc8877",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "PRODUTOS",
+        "height": 608,
+        "width": 1728,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        512,
+        1584
+      ],
+      "typeVersion": 1,
+      "id": "2ab6f470-884a-4120-a45b-f282f335b7cf",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "produtos",
+          "mode": "list",
+          "cachedResultName": "produtos"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "SKU",
+              "condition": "==",
+              "value": "={{ $('Direcionar Ação').item.json.dados.SKU }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1248,
+        1696
+      ],
+      "id": "0fafa880-730d-45a4-91be-fc9768b4854e",
+      "name": "Buscar Produtos",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const resultado = $input.all();\n\n// =====================================================\n// VALIDAÇÃO DO RETORNO DO MYSQL\n// =====================================================\n\nif (\n  resultado.length === 0 ||\n  !resultado[0].json ||\n  Object.keys(resultado[0].json).length === 0\n) {\n  return [\n    {\n      json: {\n        sucesso: false,\n        acao: 'cadastrar_produto',\n        mensagem: 'Erro ao cadastrar produto.',\n        produto: null\n      }\n    }\n  ];\n}\n\n// =====================================================\n// PRODUTO ENCONTRADO\n// =====================================================\n\nconst produto = resultado[0].json;\n\nreturn [\n  {\n    json: {\n      sucesso: true,\n      acao: 'cadastrar_produto',\n      mensagem: 'Produto cadastrado com sucesso.',\n      produto: {\n        IdProduto: produto.IdProduto,\n        Nome: produto.Nome,\n        Descricao: produto.Descricao,\n        Preco: Number(produto.Preco),\n        Estoque: produto.Estoque,\n        Categoria: produto.Categoria,\n        CodigoBarras: produto.CodigoBarras,\n        SKU: produto.SKU,\n        DataCadastro: produto.DataCadastro,\n        Ativo: produto.Ativo\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        1696
+      ],
+      "id": "7e4e8790-eec7-40da-8545-c4749056b262",
+      "name": "Formatar Resposta - Cadastro"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    IdProduto,\n    Nome,\n    Descricao,\n    Preco,\n    Estoque,\n    Categoria,\n    CodigoBarras,\n    SKU,\n    DataCadastro,\n    Ativo\nFROM Produtos\nWHERE\n    (\n        {{ $json.dados.IdProduto === null\n            ? '1=1'\n            : `IdProduto = ${Number($json.dados.IdProduto)}`\n        }}\n    )\n    AND\n    (\n        {{ $json.dados.Nome === null\n            ? '1=1'\n            : `Nome LIKE '%${$json.dados.Nome.replace(/'/g, \"''\")}%'`\n        }}\n    )\n    AND\n    (\n        {{ $json.dados.SKU === null\n            ? '1=1'\n            : `SKU = '${$json.dados.SKU.replace(/'/g, \"''\")}'`\n        }}\n    )\n    AND\n    (\n        {{ $json.dados.Categoria === null\n            ? '1=1'\n            : `Categoria LIKE '%${$json.dados.Categoria.replace(/'/g, \"''\")}%'`\n        }}\n    )\n    AND\n    (\n        {{ $json.dados.CodigoBarras === null\n            ? '1=1'\n            : `CodigoBarras = '${$json.dados.CodigoBarras.replace(/'/g, \"''\")}'`\n        }}\n    );",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        544,
+        1824
+      ],
+      "id": "65ba5d61-64b2-4de1-b893-194ddd288a19",
+      "name": "Consultar Produtos",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "produtos",
+          "mode": "list",
+          "cachedResultName": "produtos"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "IdProduto",
+              "condition": "==",
+              "value": "={{ $('Direcionar Ação').item.json.dados.IdProduto }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1264,
+        1920
+      ],
+      "id": "615650e1-eb48-4ba4-a136-1f3350670b15",
+      "name": "Buscar Produto Atualizado",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const resultado = $input.all();\n\nif (\n  resultado.length === 0 ||\n  !resultado[0].json ||\n  Object.keys(resultado[0].json).length === 0\n) {\n  return [\n    {\n      json: {\n        sucesso: false,\n        acao: 'alterar_produto',\n        mensagem: 'Produto não encontrado após a alteração.',\n        produto: null\n      }\n    }\n  ];\n}\n\nconst produto = resultado[0].json;\n\nreturn [\n  {\n    json: {\n      sucesso: true,\n      acao: 'alterar_produto',\n      mensagem: 'Produto alterado com sucesso.',\n      produto: {\n        IdProduto: produto.IdProduto,\n        Nome: produto.Nome,\n        Descricao: produto.Descricao,\n        Preco: Number(produto.Preco),\n        Estoque: produto.Estoque,\n        Categoria: produto.Categoria,\n        CodigoBarras: produto.CodigoBarras,\n        SKU: produto.SKU,\n        DataCadastro: produto.DataCadastro,\n        Ativo: produto.Ativo\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        1920
+      ],
+      "id": "d82ef40f-6007-47f9-b7e6-243c6c6f2c86",
+      "name": "Formatar Resposta Alteração Produto"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resultado = $input.all();\n\nconst dados = $('Direcionar Ação').item.json.dados;\n\nif (\n  resultado.length === 0 ||\n  !resultado[0].json ||\n  Object.keys(resultado[0].json).length === 0\n) {\n  return [\n    {\n      json: {\n        existe: false,\n        produto: null,\n        dados: dados\n      }\n    }\n  ];\n}\n\nconst produto = resultado[0].json;\n\nreturn [\n  {\n    json: {\n      existe: true,\n      produto: {\n        IdProduto: produto.IdProduto,\n        Nome: produto.Nome,\n        SKU: produto.SKU,\n        CodigoBarras: produto.CodigoBarras\n      },\n      dados: dados\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        1648
+      ],
+      "id": "17749f32-c3a3-448f-b836-5b23fe38b3f1",
+      "name": "Validar Existência Produto",
+      "retryOnFail": false,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "produtos",
+          "mode": "list",
+          "cachedResultName": "produtos"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "SKU",
+              "condition": "==",
+              "value": "={{ $json.dados.SKU}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        528,
+        1648
+      ],
+      "id": "560fe3d2-9f4b-4b8b-85aa-6e2740e4d476",
+      "name": "Validador de SKU",
+      "retryOnFail": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Resposta quando cliente não existe para alteração\nreturn [{\n  json: {\n    sucesso: false,\n    mensagem: \"Produto não encontrado para alteração.\",\n    produto: null\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        2080
+      ],
+      "id": "f80b75c9-0743-46f0-bd29-c306bf62410e",
+      "name": "Produto Não Encontrado"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE Produtos\nSET\n    Nome = {{ $json.Nome !== undefined ? `'${$json.Nome.replace(/'/g, \"''\")}'` : 'Nome' }},\n    Descricao = {{ $json.Descricao !== undefined ? `'${$json.Descricao.replace(/'/g, \"''\")}'` : 'Descricao' }},\n    Preco = {{ $json.Preco !== undefined ? Number($json.Preco) : 'Preco' }},\n    Estoque = {{ $json.Estoque !== undefined ? Number($json.Estoque) : 'Estoque' }},\n    Categoria = {{ $json.Categoria !== undefined ? `'${$json.Categoria.replace(/'/g, \"''\")}'` : 'Categoria' }},\n    CodigoBarras = {{ $json.CodigoBarras !== undefined ? `'${$json.CodigoBarras.replace(/'/g, \"''\")}'` : 'CodigoBarras' }},\n    SKU = {{ $json.SKU !== undefined ? `'${$json.SKU.replace(/'/g, \"''\")}'` : 'SKU' }}\nWHERE IdProduto = {{ Number($json.IdProduto) }};",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1104,
+        1920
+      ],
+      "id": "cd4e6b31-9344-4e18-9985-2cd2e37ef0a0",
+      "name": "Atualizar o Produto",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const dados = $('Validar e Preparar Requisição').item.json.dados;\n\nconst produto = {\n  IdProduto: dados.IdProduto\n};\n\n// Adiciona somente os campos que realmente foram informados\nconst campos = [\n  'Nome',\n  'Descricao',\n  'Preco',\n  'Estoque',\n  'Categoria',\n  'CodigoBarras',\n  'SKU'\n];\n\nfor (const campo of campos) {\n  const valor = dados[campo];\n\n  if (\n    valor !== null &&\n    valor !== undefined &&\n    String(valor).trim() !== ''\n  ) {\n    produto[campo] = valor;\n  }\n}\n\nreturn [\n  {\n    json: produto\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        1920
+      ],
+      "id": "490a62a3-3e1c-41ed-b4fe-ad3d7b197540",
+      "name": "Validar e Preparar Requisição do Produto"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resultado = $input.all();\n\n// =====================================================\n// VALIDAÇÃO DO RETORNO DO MYSQL\n// =====================================================\n\nif (\n  resultado.length === 0 ||\n  !resultado[0].json ||\n  Object.keys(resultado[0].json).length === 0\n) {\n  return [\n    {\n      json: {\n        sucesso: false,\n        acao: 'consultar_produto',\n        mensagem: 'Produto não encontrado.',\n        produto: null\n      }\n    }\n  ];\n}\n\n// =====================================================\n// PRODUTO ENCONTRADO\n// =====================================================\n\nconst produto = resultado[0].json;\n\nreturn [\n  {\n    json: {\n      sucesso: true,\n      acao: 'consultar_produto',\n      mensagem: 'Produto encontrado com sucesso.',\n      produto: {\n        IdProduto: produto.IdProduto,\n        Nome: produto.Nome,\n        Descricao: produto.Descricao,\n        Preco: Number(produto.Preco),\n        Estoque: produto.Estoque,\n        Categoria: produto.Categoria,\n        CodigoBarras: produto.CodigoBarras,\n        SKU: produto.SKU,\n        DataCadastro: produto.DataCadastro,\n        Ativo: produto.Ativo\n      }\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        1824
+      ],
+      "id": "714f7e08-7d4d-4fe8-b032-37d2f9aed249",
+      "name": "Formatar Resposta - Consulta"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "produtos",
+          "mode": "list",
+          "cachedResultName": "produtos"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "IdProduto",
+              "condition": "==",
+              "value": "={{ $json.dados.IdProduto }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        544,
+        2016
+      ],
+      "id": "f7cea651-9281-488b-845d-2de4fcefdc33",
+      "name": "Buscar Produto para Alteração",
+      "retryOnFail": false,
+      "executeOnce": false,
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "SWITCH-DIRECIONAMENTO\nDirecionar para o  fluxo apropriado baseado na ação",
+        "height": 560,
+        "width": 288,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        1568
+      ],
+      "id": "c97d28e4-fc8f-4199-923c-44086ef8c67b",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "PROCESSAR REQUISIÇÃO\nValida e extrai a ação e os dados",
+        "height": 560
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        1568
+      ],
+      "id": "fb89c7fe-d75d-4976-8255-f6f1a87f70cf",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "ENTRADA-WEBHOOK\nRecebe requisições do Agente IA com a ação e os dados ",
+        "height": 560,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -576,
+        1568
+      ],
+      "id": "fdf16702-7387-421b-a489-1113f1709547",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    IdCliente,\n    Nome,\n    Email,\n    Telefone,\n    DataCadastro,\n    Status\nFROM Clientes\nWHERE\n    (\n        {{\n            $json.dados.IdCliente === null\n                ? '1=1'\n                : `IdCliente = ${Number($json.dados.IdCliente)}`\n        }}\n    )\n    AND\n    (\n        {{\n            $json.dados.Nome === null\n                ? '1=1'\n                : `Nome LIKE '%${$json.dados.Nome.replace(/'/g, \"''\")}%'`\n        }}\n    )\n    AND\n    (\n        {{\n            $json.dados.Email === null\n                ? '1=1'\n                : `Email = '${$json.dados.Email.replace(/'/g, \"''\")}'`\n        }}\n    )\n    AND\n    (\n        {{\n            $json.dados.Telefone === null\n                ? '1=1'\n                : `Telefone = '${$json.dados.Telefone.replace(/'/g, \"''\")}'`\n        }}\n    )\n    AND\n    (\n        {{\n            $json.dados.Status === null\n                ? '1=1'\n                : `Status = '${$json.dados.Status.replace(/'/g, \"''\")}'`\n        }}\n    );",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        560,
+        1200
+      ],
+      "id": "27bb73b5-48f8-43ed-a454-85a53598f9cb",
+      "name": "Consultar Clientes",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "SAÍDA-WEBHOOK\nEnvia o resultado para o Agente IA",
+        "height": 560,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2768,
+        1600
+      ],
+      "id": "b3666c11-401f-4f11-9c28-2b4ed63a4e3e",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "ESTOQUE/VENDAS",
+        "height": 864,
+        "width": 1728,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        512,
+        2240
+      ],
+      "typeVersion": 1,
+      "id": "48aad4fe-d5c1-4473-9b27-effceba2ccff",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        2320
+      ],
+      "id": "284a76aa-9e42-4fca-8c08-b71f48361b2f",
+      "name": "Validar e Preparar Compra"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    IdCliente,\n    Nome,\n    Email,\n    Status\nFROM Clientes\nWHERE IdCliente = {{ $json.dados.IdCliente }}\nLIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        720,
+        2320
+      ],
+      "id": "2bf28fac-e22a-42a6-a599-e46a123c3f6d",
+      "name": "Consultar Cliente para Compra",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7b30033c-29bc-4635-99eb-0596671a8002",
+              "leftValue": "={{ \n  $json.IdCliente !== undefined &&\n  $json.IdCliente !== null &&\n  $json.Status === 'ATIVO'\n}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "5c7fa9e0-18f0-4bfe-aac2-3130f9f80ce0",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        912,
+        2320
+      ],
+      "id": "196606a5-dc16-4f95-bbf2-ae631f9ccb70",
+      "name": "Validar Cliente"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      sucesso: false,\n      acao: 'cadastrar_compra',\n      mensagem: 'Não foi possível realizar a compra.',\n      erro: 'Cliente não encontrado ou está inativo.',\n      IdCliente: $json.IdCliente ?? null\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        2400
+      ],
+      "id": "c5054429-ff4a-4feb-9fe8-8d0f6ce057aa",
+      "name": "Resposta para Cliente Invalido"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n // Recuperar a requisição original\nconst requisicao = $('Validar e Preparar Compra').first().json;\nconst dados = requisicao.dados;\n\nconst idCliente = Number(dados.IdCliente);\n\n// Aceitar \"Itens\" ou \"itens\", independentemente da capitalização usada\nconst itens = dados.Itens ?? dados.itens;\n\n// Validar se os itens foram recebidos corretamente\nif (!Array.isArray(itens) || itens.length === 0) {\n  throw new Error(\n    'Nenhum item válido encontrado em dados.Itens. Verifique a saída do nó \"Validar e Preparar Compra\".'\n  );\n}\n\n// Gerar um item do n8n para cada produto\nreturn itens.map((item, index) => {\n  const idProduto = Number(item.IdProduto);\n  const quantidade = Number(item.Quantidade);\n\n  if (!Number.isInteger(idProduto) || idProduto <= 0) {\n    throw new Error(`IdProduto inválido no item ${index + 1}.`);\n  }\n\n  if (!Number.isInteger(quantidade) || quantidade <= 0) {\n    throw new Error(`Quantidade inválida no item ${index + 1}.`);\n  }\n\n  return {\n    json: {\n      IdCliente: idCliente,\n      IdProduto: idProduto,\n      Quantidade: quantidade,\n    },\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        2240
+      ],
+      "id": "e0ff8650-ad94-475d-9067-9bbf228437b1",
+      "name": "Consultar Produtos da Compra"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    IdProduto,\n    Nome,\n    Preco,\n    Estoque,\n    Ativo\nFROM Produtos\nWHERE IdProduto = {{ Number($json.IdProduto) }}\nLIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1328,
+        2240
+      ],
+      "id": "7e375246-8eb0-4837-8d6d-ce2c3231f6b7",
+      "name": "Preparar Itens da Compra",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst produtos = $input.all().map(item => item.json);\n\n// Recuperar a solicitação original da compra\nconst solicitacao = $('Validar e Preparar Compra').first().json;\nconst dados = solicitacao.dados ?? solicitacao;\n\nconst idCliente = Number(dados.IdCliente);\nconst itensSolicitados = dados.Itens ?? dados.itens ?? [];\n\nconst erros = [];\n\nif (!Number.isInteger(idCliente) || idCliente <= 0) {\n  erros.push('IdCliente ausente ou inválido.');\n}\n\nif (!Array.isArray(itensSolicitados) || itensSolicitados.length === 0) {\n  erros.push('Nenhum item foi informado para a compra.');\n}\n\nif (erros.length > 0) {\n  return [{\n    json: {\n      sucesso: false,\n      acao: 'cadastrar_compra',\n      mensagem: 'Não foi possível validar a compra.',\n      erros\n    }\n  }];\n}\n\n// Normalizar os campos retornados pelo MySQL\nconst produtosNormalizados = produtos.map(p => ({\n  IdProduto: Number(p.IdProduto ?? p.idProduto ?? p.id_produto),\n  Nome: p.Nome ?? p.nome,\n  Ativo: p.Ativo ?? p.ativo,\n  Estoque: Number(p.Estoque ?? p.estoque),\n  Preco: Number(p.Preco ?? p.preco ?? p.PrecoUnitario)\n}));\n\nconst itensValidados = [];\n\nfor (const item of itensSolicitados) {\n  const idProduto = Number(item.IdProduto);\n  const quantidade = Number(item.Quantidade);\n\n  const produto = produtosNormalizados.find(\n    p => p.IdProduto === idProduto\n  );\n\n  if (!produto) {\n    erros.push(\n      `Produto ID ${idProduto} não encontrado na saída do MySQL. IDs retornados: ${\n        produtosNormalizados.map(p => p.IdProduto).join(', ') || 'nenhum'\n      }.`\n    );\n    continue;\n  }\n\n  if (Number(produto.Ativo) !== 1) {\n    erros.push(`O produto \"${produto.Nome}\" está inativo.`);\n    continue;\n  }\n\n  if (!Number.isInteger(quantidade) || quantidade <= 0) {\n    erros.push(`Quantidade inválida para \"${produto.Nome}\".`);\n    continue;\n  }\n\n  if (!Number.isFinite(produto.Estoque) || produto.Estoque < quantidade) {\n    erros.push(\n      `Estoque insuficiente ou inválido para \"${produto.Nome}\". Disponível: ${produto.Estoque}.`\n    );\n    continue;\n  }\n\n  if (!Number.isFinite(produto.Preco) || produto.Preco < 0) {\n    erros.push(`Preço inválido para \"${produto.Nome}\".`);\n    continue;\n  }\n\n  itensValidados.push({\n    IdProduto: produto.IdProduto,\n    Nome: produto.Nome,\n    Quantidade: quantidade,\n    PrecoUnitario: produto.Preco,\n    Subtotal: Number((produto.Preco * quantidade).toFixed(2))\n  });\n}\n\nif (erros.length > 0) {\n  return [{\n    json: {\n      sucesso: false,\n      acao: 'cadastrar_compra',\n      mensagem: 'Não foi possível validar os produtos.',\n      erros\n    }\n  }];\n}\n\nconst valorTotal = Number(\n  itensValidados.reduce((total, item) => total + item.Subtotal, 0).toFixed(2)\n);\n\nreturn [{\n  json: {\n    sucesso: true,\n    acao: 'cadastrar_compra',\n    IdCliente: idCliente,\n    itens: itensValidados,\n    ValorTotal: valorTotal\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1536,
+        2240
+      ],
+      "id": "b2d1c326-f94a-4f95-94c2-ef449fe43e48",
+      "name": "Validar Produtos da Compra"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nCALL RegistrarCompraCliente(\n    {{\n        (() => {\n            const entrada = $json;\n            const idCliente = Number(\n                entrada.IdCliente ?? entrada.dados?.IdCliente\n            );\n\n            if (\n                !Number.isInteger(idCliente) ||\n                idCliente <= 0\n            ) {\n                throw new Error(\n                    'IdCliente ausente ou inválido. Confira a saída de Validar Produtos da Compra.'\n                );\n            }\n\n            return idCliente;\n        })()\n    }},\n    '{{\n        (() => {\n            const entrada = $json;\n            const itens = entrada.itens ?? entrada.Itens ?? entrada.dados?.Itens;\n\n            if (!Array.isArray(itens) || itens.length === 0) {\n                throw new Error(\n                    'Lista de itens ausente. Confira a saída de Validar Produtos da Compra.'\n                );\n            }\n\n            const lista = itens.map((item, indice) => {\n                const idProduto = Number(item.IdProduto);\n                const quantidade = Number(item.Quantidade);\n\n                if (\n                    !Number.isInteger(idProduto) ||\n                    idProduto <= 0 ||\n                    !Number.isInteger(quantidade) ||\n                    quantidade <= 0\n                ) {\n                    throw new Error(\n                        `Item ${indice + 1}: IdProduto ou Quantidade inválidos.`\n                    );\n                }\n\n                return {\n                    IdProduto: idProduto,\n                    Quantidade: quantidade\n                };\n            });\n\n            return JSON.stringify(lista).replace(/'/g, \"''\");\n        })()\n    }}'\n);\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1744,
+        2240
+      ],
+      "id": "64e767bb-7412-43bb-9b75-2a43bfefc067",
+      "name": "Registrar Compra no MySQL",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst resultado = $input.first().json;\n\n// Identificar erros retornados pelo nó MySQL\nconst mensagemErro =\n  resultado.error?.message ||\n  resultado.message ||\n  resultado.description;\n\n// Se o MySQL retornou um erro, responder sem afirmar que a compra foi registrada\nif (\n  resultado.error ||\n  (mensagemErro && /unknown column|error|failed|invalid/i.test(mensagemErro))\n) {\n  return [{\n    json: {\n      sucesso: false,\n      acao: 'cadastrar_compra',\n      mensagem: 'Não foi possível registrar a compra. Verifique os dados e tente novamente.',\n      erro: {\n        mensagem: mensagemErro || 'Erro não especificado pelo banco de dados.'\n      }\n    }\n  }];\n}\n\n// O CALL pode retornar os dados da procedure em um array\nlet dados = resultado;\n\nif (Array.isArray(resultado)) {\n  dados = resultado.find(item =>\n    item &&\n    typeof item === 'object' &&\n    item.IdCompra !== undefined\n  ) || resultado[0];\n}\n\nif (Array.isArray(dados)) {\n  dados = dados.find(item =>\n    item &&\n    typeof item === 'object' &&\n    item.IdCompra !== undefined\n  ) || dados[0];\n}\n\n// Se não houver confirmação do banco, não afirmar sucesso\nif (\n  !dados ||\n  typeof dados !== 'object' ||\n  dados.IdCompra === undefined ||\n  Number(dados.sucesso) !== 1\n) {\n  return [{\n    json: {\n      sucesso: false,\n      acao: 'cadastrar_compra',\n      mensagem: 'Não foi possível confirmar o registro da compra. Verifique o histórico antes de tentar novamente.'\n    }\n  }];\n}\n\n// Resposta de sucesso\nreturn [{\n  json: {\n    sucesso: true,\n    acao: 'cadastrar_compra',\n    mensagem: dados.mensagem || 'Compra registrada com sucesso.',\n    compra: {\n      IdCompra: Number(dados.IdCompra),\n      IdCliente: Number(dados.IdCliente),\n      ValorTotal: Number(dados.ValorTotal),\n      Status: dados.Status\n    }\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1952,
+        2240
+      ],
+      "id": "b2d65932-9814-4056-b8e2-c1d63dd731c7",
+      "name": "Formatar a Resposta da Compra"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Resposta quando cliente já existe\nreturn [{\n  json: {\n    sucesso: false,\n    mensagem: \"Cliente já cadastrado com este email.\",\n    cliente: $json.clienteExistente\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        960
+      ],
+      "id": "1de7f50a-372f-4057-9770-25d97749198d",
+      "name": "Resposta para clientes já cadastrados"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dados = $('Validar e Preparar Requisição').item.json.dados;\n\nconst cliente = {\n  IdCliente: dados.IdCliente\n};\n\n// Adiciona somente os campos que realmente foram informados\nconst campos = [\n  'IdCliente',\n    'Nome',\n  'Email', \n  'Telefone',\n  'DataCadastro',\n  'Status'\n];\n\nfor (const campo of campos) {\n  const valor = dados[campo];\n\n  if (\n    valor !== null &&\n    valor !== undefined &&\n    String(valor).trim() !== ''\n  ) {\n    cliente[campo] = valor;\n  }\n}\n\nreturn [\n  {\n    json: cliente\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        1264
+      ],
+      "id": "90dec42c-430c-4008-ae5f-c98b0b05abb1",
+      "name": "Filtrar Campos do Cliente"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE Clientes\nSET\n    Nome = {{ $json.Nome !== undefined ? `'${$json.Nome.replace(/'/g, \"''\")}'` : 'Nome' }},\n    Email = {{ $json.Email !== undefined ? Number($json.Email) : 'Email' }},\n    Telefone = {{ $json.Telefone  !== undefined ? Number($json.Telefone ) : 'Telefone' }},\n    DataCadastro = {{ $json.DataCadastro !== undefined ? `'${$json.DataCadastro.replace(/'/g, \"''\")}'` : 'DataCadastro' }},\n    Status = {{ $json.Status !== undefined ? `'${$json.Status.replace(/'/g, \"''\")}'` : 'Status' }}\nWHERE IdCliente = {{ Number($json.IdCliente) }};",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1120,
+        1264
+      ],
+      "id": "3a120ed0-4e13-41bf-8e11-34076b538cef",
+      "name": "Atualizar Cliente no MySQL",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "076e3960-b787-40ee-9f71-b39d5f51e4b9",
+              "leftValue": "={{ $json.existe }}",
+              "rightValue": "=true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        1648
+      ],
+      "id": "da1cb4b2-41aa-46f7-b528-e0d82e92a627",
+      "name": "Validar a  existência do produto"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Resposta quando Produto já existe\nreturn [{\n  json: {\n    sucesso: false,\n    mensagem: \"Já existe um produto cadastrado com este SKU.\",\n    produto: $json.produtoExistente\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        1584
+      ],
+      "id": "0240caf1-c870-4e5c-ba59-2196d335c9b8",
+      "name": "Produto já existente"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "93a8b20e-b8e3-40cd-adbe-743acb7ed2ce",
+              "leftValue": "={{ $json.IdProduto != null }}",
+              "rightValue": "=true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        720,
+        2016
+      ],
+      "id": "6db94325-165e-4f0f-ad18-31f8a768288a",
+      "name": "Validar o Produto"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    IdCompra,\n    IdCliente,\n    DataCompra,\n    ValorTotal,\n    Status\nFROM Compras\nWHERE IdCliente = {{ $json.IdCliente }}\nORDER BY DataCompra DESC, IdCompra DESC;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        976,
+        2576
+      ],
+      "id": "459a94bd-2c11-4083-b93d-d79d69d9a2e5",
+      "name": "Consultar Compras",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    IdCliente,\n    Nome,\n    Email,\n    Status\nFROM Clientes\nWHERE IdCliente = {{ $json.dados.IdCliente }}\nLIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        528,
+        2672
+      ],
+      "id": "2363978e-bb4f-4001-8289-812c18aecb20",
+      "name": "Consultar Cliente para Compra1",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7b30033c-29bc-4635-99eb-0596671a8002",
+              "leftValue": "={{ \n  $json.IdCliente !== undefined &&\n  $json.IdCliente !== null &&\n  $json.Status === 'ATIVO'\n}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "5c7fa9e0-18f0-4bfe-aac2-3130f9f80ce0",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        752,
+        2672
+      ],
+      "id": "fff16750-e1b6-42b5-b066-2dcd67a6d31c",
+      "name": "Validar Cliente1"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    c.IdCompra,\n    c.IdCliente,\n    c.DataCompra,\n    c.ValorTotal,\n    c.Status,\n    ic.IdItem,\n    ic.IdProduto,\n    p.Nome AS NomeProduto,\n    ic.Quantidade,\n    ic.PrecoUnitario\nFROM Compras c\nLEFT JOIN ItensCompra ic\n    ON ic.IdCompra = c.IdCompra\nLEFT JOIN Produtos p\n    ON p.IdProduto = ic.IdProduto\nWHERE c.IdCliente = {{ $json.IdCliente }}\nORDER BY c.DataCompra DESC, c.IdCompra DESC;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1200,
+        2576
+      ],
+      "id": "3df68047-8146-4639-992f-fed580badcab",
+      "name": "Consultar Itens das COmpras",
+      "credentials": {
+        "mySql": {
+          "id": "KOzdJpuT8VZlB7oE",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recupera todas as compras\nconst compras = $('Consultar Compras').all();\n\n// Recupera todos os itens das compras\nconst itens = $input.all();\n\n// Organiza os itens por compra\nconst comprasFormatadas = compras.map(item => {\n  const compra = item.json;\n\n  const itensDaCompra = itens\n    .filter(registro =>\n      Number(registro.json.IdCompra) === Number(compra.IdCompra)\n    )\n    .map(registro => ({\n      IdItem: registro.json.IdItem,\n      IdProduto: registro.json.IdProduto,\n      NomeProduto: registro.json.NomeProduto,\n      Quantidade: Number(registro.json.Quantidade),\n      PrecoUnitario: Number(registro.json.PrecoUnitario)\n    }));\n\n  return {\n    IdCompra: compra.IdCompra,\n    IdCliente: compra.IdCliente,\n    DataCompra: compra.DataCompra,\n    ValorTotal: Number(compra.ValorTotal),\n    Status: compra.Status,\n    itens: itensDaCompra\n  };\n});\n\nreturn [{\n  json: {\n    sucesso: true,\n    acao: 'consultar_compra',\n    compras: comprasFormatadas\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1424,
+        2576
+      ],
+      "id": "4cc44d20-64a0-46ab-94d8-74b8b021060d",
+      "name": "Formatar Histórico de COmpras"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resultado = $input.first().json;\n\nif (!resultado.sucesso) {\n  return [{\n    json: {\n      sucesso: false,\n      acao: 'consultar_compra',\n      mensagem: 'Não foi possível consultar o histórico de compras.'\n    }\n  }];\n}\n\nif (!resultado.compras || resultado.compras.length === 0) {\n  return [{\n    json: {\n      sucesso: true,\n      acao: 'consultar_compra',\n      mensagem: 'Este cliente ainda não possui compras registradas.',\n      compras: []\n    }\n  }];\n}\n\nconst compras = resultado.compras;\n\nconst historico = compras.map(compra => {\n  const itens = compra.itens.map(item =>\n    `${item.Quantidade}x ${item.NomeProduto} — R$ ${item.PrecoUnitario.toFixed(2).replace('.', ',')}`\n  ).join('\\n');\n\n  return [\n    `Compra #${compra.IdCompra}`,\n    `Data: ${compra.DataCompra}`,\n    `Status: ${compra.Status}`,\n    `Valor total: R$ ${compra.ValorTotal.toFixed(2).replace('.', ',')}`,\n    `Produtos:\\n${itens}`\n  ].join('\\n');\n}).join('\\n\\n');\n\nreturn [{\n  json: {\n    sucesso: true,\n    acao: 'consultar_compra',\n    mensagem: `Histórico de compras encontrado:\\n\\n${historico}`,\n    compras\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        2576
+      ],
+      "id": "20a4466f-b4e5-4db5-aff2-a820087aedd0",
+      "name": "Formatar Resposta da Consulta de COmpras"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    sucesso: false,\n    acao: 'consultar_compra',\n    mensagem: 'Não encontrei um cliente com o ID informado. Verifique o código do cliente e tente novamente.',\n    compras: []\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        2704
+      ],
+      "id": "5b35f45c-62bd-49a5-a603-fa9449475c4b",
+      "name": "Cliente Não Encontrado1"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "acao": "consultar_compra",
+          "dados": {
+            "IdCliente": 2
+          }
+        }
+      }
+    ],
+    "Consultar Cliente para Compra1": [
+      {
+        "json": {
+          "acao": "consultar_compra",
+          "dados": {
+            "IdCliente": 1
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar e Preparar Requisição",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar e Preparar Requisição": {
+      "main": [
+        [
+          {
+            "node": "Direcionar Ação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Direcionar Ação": {
+      "main": [
+        [
+          {
+            "node": "Validador de Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consultar Clientes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar Cliente para Alteração",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validador de SKU",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consultar Produtos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar Produto para Alteração",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validar e Preparar Compra",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consultar Cliente para Compra1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cadastrar Cliente": {
+      "main": [
+        [
+          {
+            "node": "Buscar Cliente ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Cliente ": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta — Cadastro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Cliente para Alteração": {
+      "main": [
+        [
+          {
+            "node": "Validar Existência",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Existência": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Campos do Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cliente Não Encontrado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Cliente Atualizado": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cliente Não Encontrado": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta — Cadastro": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta Consulta": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Resposta para clientes já cadastrados",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cadastrar Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validador de Email": {
+      "main": [
+        [
+          {
+            "node": "Codigo de Validação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Codigo de Validação": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cadastrar_Produto": {
+      "main": [
+        [
+          {
+            "node": "Buscar Produtos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Produtos": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta - Cadastro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta - Cadastro": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    },
+    "Consultar Produtos": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta - Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Produto Atualizado": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta Alteração Produto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta Alteração Produto": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Existência Produto": {
+      "main": [
+        [
+          {
+            "node": "Validar a  existência do produto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validador de SKU": {
+      "main": [
+        [
+          {
+            "node": "Validar Existência Produto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Produto Não Encontrado": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar o Produto": {
+      "main": [
+        [
+          {
+            "node": "Buscar Produto Atualizado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar e Preparar Requisição do Produto": {
+      "main": [
+        [
+          {
+            "node": "Atualizar o Produto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta - Consulta": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Produto para Alteração": {
+      "main": [
+        [
+          {
+            "node": "Validar o Produto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Clientes": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar e Preparar Compra": {
+      "main": [
+        [
+          {
+            "node": "Consultar Cliente para Compra",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Cliente para Compra": {
+      "main": [
+        [
+          {
+            "node": "Validar Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Cliente": {
+      "main": [
+        [
+          {
+            "node": "Consultar Produtos da Compra",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resposta para Cliente Invalido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resposta para Cliente Invalido": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Produtos da Compra": {
+      "main": [
+        [
+          {
+            "node": "Preparar Itens da Compra",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Itens da Compra": {
+      "main": [
+        [
+          {
+            "node": "Validar Produtos da Compra",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Produtos da Compra": {
+      "main": [
+        [
+          {
+            "node": "Registrar Compra no MySQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Compra no MySQL": {
+      "main": [
+        [
+          {
+            "node": "Formatar a Resposta da Compra",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Formatar a Resposta da Compra": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resposta para clientes já cadastrados": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Campos do Cliente": {
+      "main": [
+        [
+          {
+            "node": "Atualizar Cliente no MySQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Cliente no MySQL": {
+      "main": [
+        [
+          {
+            "node": "Buscar Cliente Atualizado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar a  existência do produto": {
+      "main": [
+        [
+          {
+            "node": "Produto já existente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cadastrar_Produto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Produto já existente": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar o Produto": {
+      "main": [
+        [
+          {
+            "node": "Validar e Preparar Requisição do Produto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Produto Não Encontrado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Cliente para Compra1": {
+      "main": [
+        [
+          {
+            "node": "Validar Cliente1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Cliente1": {
+      "main": [
+        [
+          {
+            "node": "Consultar Compras",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cliente Não Encontrado1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Compras": {
+      "main": [
+        [
+          {
+            "node": "Consultar Itens das COmpras",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Itens das COmpras": {
+      "main": [
+        [
+          {
+            "node": "Formatar Histórico de COmpras",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Histórico de COmpras": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta da Consulta de COmpras",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta da Consulta de COmpras": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cliente Não Encontrado1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "49558508-1f9d-43fc-9248-6274c7cc62df",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "35b5070a2c6bd2f0645dce015ac46a82892b324b226e8814bc2c5f502e191450"
+  },
+  "nodeGroups": [],
+  "id": "kdsca3mXHrM4lVmL",
+  "tags": []
+}
